@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>처리완료 민원</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans KR", Arial, sans-serif;
+        background: #f4f6fb;
+        color: #1b2430;
+      }
+
+      .top-gap {
+        height: 5vh;
+        background: linear-gradient(90deg, #c7d8ff, #eef4ff);
+        display: flex;
+        align-items: center;
+        padding: 0 2rem;
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .tab-link {
+        text-decoration: none;
+        color: #5a657e;
+        font-weight: 600;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .tab-link.active {
+        background: #fff;
+        color: #1e4dd8;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      }
+
+      .tab-link.placeholder {
+        cursor: default;
+        opacity: 0.5;
+      }
+
+      main {
+        height: calc(100vh - 5vh);
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      .content {
+        width: min(900px, 100%);
+        background: #fff;
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 12px 30px rgba(29, 67, 155, 0.12);
+        overflow-y: auto;
+      }
+
+      h1 {
+        margin-top: 0;
+        margin-bottom: 1.25rem;
+        font-size: 1.5rem;
+      }
+
+      .status-message {
+        font-size: 0.95rem;
+        color: #6a6c70;
+        min-height: 1.2em;
+        margin-bottom: 1rem;
+      }
+
+      .status-message.error {
+        color: #c62828;
+      }
+
+      .completed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .completed-card {
+        border: 1px solid #e1e5f2;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fdfdfd;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+      }
+
+      .completed-card.full {
+        grid-template-columns: 1fr;
+      }
+
+      .card-title {
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .meta {
+        font-size: 0.9rem;
+        color: #5c6271;
+      }
+
+      .comment-section {
+        grid-column: 1 / -1;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #e5e8f1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .comment-section h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1b2430;
+      }
+
+      .comment-item {
+        font-size: 0.85rem;
+        color: #30374a;
+      }
+
+      .comment-meta {
+        font-size: 0.75rem;
+        color: #7a8194;
+      }
+
+      .comment-empty {
+        font-size: 0.85rem;
+        color: #9aa0a6;
+        margin: 0;
+      }
+
+      .photo {
+        grid-column: 1 / -1;
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #eef3ff;
+      }
+
+      @media (max-width: 768px) {
+        .completed-card {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-gap">
+      <nav class="tab-row">
+        <a class="tab-link" href="/">현재 민원</a>
+        <a class="tab-link active" href="/completed">처리완료 민원</a>
+        <span class="tab-link placeholder">GPT</span>
+      </nav>
+    </div>
+    <main>
+      <section class="content">
+        <h1>처리 완료된 민원</h1>
+        <p id="statusMessage" class="status-message"></p>
+        <div id="completedList" class="completed-list"></div>
+      </section>
+    </main>
+
+    <script>
+      const statusEl = document.getElementById("statusMessage");
+      const listEl = document.getElementById("completedList");
+      const API_BASE =
+        window.location.origin && window.location.origin.startsWith("http")
+          ? window.location.origin
+          : "http://localhost:3000";
+
+      function setStatus(msg, isError = false) {
+        statusEl.textContent = msg;
+        statusEl.classList.toggle("error", Boolean(isError));
+      }
+
+      function formatDate(raw) {
+        if (!raw) return "시간 정보 없음";
+        return new Date(raw).toLocaleString("ko-KR");
+      }
+
+      function formatCoord(lat, lng) {
+        const latNum = Number(lat);
+        const lngNum = Number(lng);
+        if (Number.isNaN(latNum) || Number.isNaN(lngNum))
+          return "좌표 정보 없음";
+        return `${latNum.toFixed(5)}, ${lngNum.toFixed(5)}`;
+      }
+
+      function buildPhotoSrc(raw) {
+        if (!raw) return null;
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith("data:")) return trimmed;
+        const normalized = trimmed.replace(/\s+/g, "");
+        let mime = "image/png";
+        if (normalized.startsWith("/9j/")) mime = "image/jpeg";
+        else if (normalized.startsWith("iVBOR")) mime = "image/png";
+        else if (normalized.startsWith("R0lG")) mime = "image/gif";
+        return `data:${mime};base64,${normalized}`;
+      }
+
+      function buildCommentsHtml(comments = []) {
+        if (!comments.length) {
+          return '<p class="comment-empty">아직 댓글이 없습니다.</p>';
+        }
+
+        return comments
+          .map((comment) => {
+            const date = comment.created_at
+              ? new Date(comment.created_at).toLocaleString("ko-KR")
+              : "";
+            return `
+              <div class="comment-item">
+                <div><strong>${comment.commenter_name}</strong></div>
+                <div>${comment.comment_text}</div>
+                <div class="comment-meta">${date}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadCompleted() {
+        setStatus("완료된 민원을 가져오는 중...");
+        try {
+          const res = await fetch(`${API_BASE}/api/completed`, {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error("API_ERROR");
+          const rows = await res.json();
+          if (!rows.length) {
+            listEl.innerHTML = "";
+            setStatus("처리완료된 민원이 없습니다.");
+            return;
+          }
+          renderList(rows);
+          setStatus(`총 ${rows.length}건의 완료 민원`);
+        } catch (err) {
+          console.error(err);
+          listEl.innerHTML = "";
+          setStatus("완료 민원을 불러오지 못했습니다.", true);
+        }
+      }
+
+      function renderList(rows) {
+        listEl.innerHTML = "";
+        rows.forEach((item) => {
+          const displayName = `${item.author_name || "미상"}${
+            item.user_id ? ` (${item.user_id})` : ""
+          }`;
+          const card = document.createElement("article");
+          card.className = "completed-card";
+          card.innerHTML = `
+            <div>
+              <div class="card-title">${displayName}</div>
+              <div class="meta">등록 ${formatDate(item.created_at)}</div>
+            </div>
+            <div>
+              <div class="meta">완료 ${formatDate(item.done_at)}</div>
+              <div class="meta">위치: ${item.location_name || "정보 없음"}</div>
+            </div>
+            <div class="meta">좌표: ${formatCoord(
+              item.latitude,
+              item.longitude
+            )}</div>
+          `;
+
+          const photoSrc = buildPhotoSrc(item.photo_base64);
+          if (photoSrc) {
+            const img = document.createElement("img");
+            img.src = photoSrc;
+            img.alt = "complaint photo";
+            img.className = "photo";
+            card.appendChild(img);
+          }
+
+          const commentWrapper = document.createElement("div");
+          commentWrapper.className = "comment-section";
+          commentWrapper.innerHTML = `
+            <h3>댓글</h3>
+            ${buildCommentsHtml(item.comments)}
+          `;
+          card.appendChild(commentWrapper);
+
+          listEl.appendChild(card);
+        });
+      }
+
+      loadCompleted();
+    </script>
+  </body>
+</html>
