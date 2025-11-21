@@ -143,6 +143,15 @@
                 required
               />
             </div>
+            <div class="full">
+              <label for="photoBase64">사진 데이터 (photo_base64)</label>
+              <textarea
+                id="photoBase64"
+                name="photo_base64"
+                rows="4"
+                placeholder="Base64 문자열을 붙여넣으세요"
+              ></textarea>
+            </div>
           </div>
           <div class="actions">
             <button class="btn-primary" type="submit">신고 추가</button>
@@ -170,6 +179,7 @@
           location_name: createForm.location_name.value.trim(),
           latitude: parseFloat(createForm.latitude.value),
           longitude: parseFloat(createForm.longitude.value),
+          photo_base64: createForm.photo_base64.value.trim(),
         };
 
         try {

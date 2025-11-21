@@ -27,7 +27,7 @@ const complaintQuery = `
          location_name,
          latitude,
          longitude,
-         LEFT(photo_base64, 40) AS photo_sample,
+         photo_base64,
          created_at
   FROM complaint
   ORDER BY created_at DESC
@@ -70,7 +70,16 @@ function createComplaint({
   });
 }
 
-module.exports = { fetchComplaints, createComplaint, pool };
+function deleteComplaint(id) {
+  return new Promise((resolve, reject) => {
+    pool.query("DELETE FROM complaint WHERE id = ?", [id], (err, result) => {
+      if (err) return reject(err);
+      resolve(result.affectedRows);
+    });
+  });
+}
+
+module.exports = { fetchComplaints, createComplaint, deleteComplaint, pool };
 
 if (require.main === module) {
   fetchComplaints(5)

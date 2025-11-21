@@ -1,6 +1,10 @@
 const path = require("path");
 const express = require("express");
-const { fetchComplaints, createComplaint } = require("./lib/dbconnect");
+const {
+  fetchComplaints,
+  createComplaint,
+  deleteComplaint,
+} = require("./lib/dbconnect");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +39,7 @@ app.get("/api/complaints", async (_req, res) => {
   }
 });
 
+// 앱에서 전송눌렀을때의 api -> db insert
 app.post("/api/create", async (req, res) => {
   const { author_name, location_name, latitude, longitude, photo_base64 } =
     req.body || {};
@@ -59,6 +64,26 @@ app.post("/api/create", async (req, res) => {
     res.status(201).json({ message: "CREATED", id: insertId });
   } catch (err) {
     console.error("Failed to insert complaint", err);
+    res.status(500).json({ message: "DB_ERROR" });
+  }
+});
+
+// 삭제 api -> db delete
+app.post("/api/delete", async (req, res) => {
+  const { id } = req.body || {};
+  const numericId = Number(id);
+  if (!numericId) {
+    return res.status(400).json({ message: "INVALID_ID" });
+  }
+
+  try {
+    const affected = await deleteComplaint(numericId);
+    if (!affected) {
+      return res.status(404).json({ message: "NOT_FOUND" });
+    }
+    res.json({ message: "DELETED" });
+  } catch (err) {
+    console.error("Failed to delete complaint", err);
     res.status(500).json({ message: "DB_ERROR" });
   }
 });

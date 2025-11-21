@@ -13,16 +13,19 @@
         margin: 0;
         font-family: "Noto Sans KR", Arial, sans-serif;
         background: #eef4ff;
+        height: 100vh;
+        overflow: hidden;
       }
 
       .split-layout {
         display: flex;
-        min-height: 100vh;
+        height: 100vh;
       }
 
       .left-panel {
         flex: 7;
         padding: 2rem;
+        overflow-y: auto;
       }
 
       .right-panel {
@@ -36,6 +39,26 @@
       .right-panel h2 {
         margin: 0 0 1.5rem;
         font-size: 1.25rem;
+      }
+
+      .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .filter-bar label {
+        font-size: 0.9rem;
+        color: #555;
+      }
+
+      .filter-select {
+        padding: 0.35rem 0.6rem;
+        border-radius: 6px;
+        border: 1px solid #cfd1d5;
+        font-size: 0.9rem;
+        min-width: 9rem;
       }
 
       .complaint-list {
@@ -60,6 +83,15 @@
         padding: 1rem;
         background: #fff;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      }
+
+      .complaint-photo {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        background: #f5f5f5;
       }
 
       .complaint-name {
@@ -112,16 +144,27 @@
       <section class="left-panel">왼쪽 70%</section>
       <aside class="right-panel">
         <h2>접수 리스트</h2>
+        <div class="filter-bar">
+          <label for="locationFilter">위치 필터</label>
+          <select id="locationFilter" class="filter-select">
+            <option value="">전체</option>
+            <option value="산학협동관">산학협동관</option>
+            <option value="기계동">기계동</option>
+          </select>
+        </div>
         <div id="complaintList" class="complaint-list"></div>
       </aside>
     </main>
 
     <script>
       const listEl = document.getElementById("complaintList");
+      const filterSelect = document.getElementById("locationFilter");
       const API_BASE =
         window.location.origin && window.location.origin.startsWith("http")
           ? window.location.origin
           : "http://localhost:3000";
+      let allComplaints = [];
+      let currentFilter = "";
 
       function setFeedback(message, isError = false) {
         listEl.innerHTML = `<p class="feedback${
@@ -147,9 +190,15 @@
           const created = item.created_at
             ? new Date(item.created_at).toLocaleString("ko-KR")
             : "시간 정보 없음";
+          const photoSrc = buildPhotoSrc(item.photo_base64);
 
           card.innerHTML = `
             <div class="complaint-name">${item.author_name || "미상"}</div>
+            ${
+              photoSrc
+                ? `<img class="complaint-photo" src="${photoSrc}" alt="complaint photo" />`
+                : ""
+            }
             <p class="complaint-line">${formatCoord(
               item.latitude,
               item.longitude
@@ -161,14 +210,60 @@
             <div class="complaint-actions">
               <input type="text" placeholder="한마디를 입력하세요" />
               <button class="btn btn-send">전송</button>
-              <button class="btn btn-complete">처리완료</button>
+              <button class="btn btn-complete" data-id="${
+                item.id
+              }">처리완료</button>
             </div>
           `;
           listEl.appendChild(card);
         });
       }
 
+      listEl.addEventListener("click", async (event) => {
+        const button = event.target.closest(".btn-complete");
+        if (!button) return;
+
+        const id = Number(button.dataset.id);
+        if (!id) return;
+
+        button.disabled = true;
+        button.textContent = "삭제 중...";
+
+        try {
+          const res = await fetch(`${API_BASE}/api/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+          });
+
+          if (!res.ok) throw new Error("삭제 실패");
+          await loadComplaints();
+        } catch (err) {
+          console.error(err);
+          button.textContent = "실패";
+          setTimeout(() => {
+            button.disabled = false;
+            button.textContent = "처리완료";
+          }, 1500);
+        }
+      });
+
       let isLoading = false;
+
+      function buildPhotoSrc(raw) {
+        if (!raw) return null;
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith("data:")) return trimmed;
+
+        const normalized = trimmed.replace(/\s+/g, "");
+        let mime = "image/png";
+        if (normalized.startsWith("/9j/")) mime = "image/jpeg";
+        else if (normalized.startsWith("iVBOR")) mime = "image/png";
+        else if (normalized.startsWith("R0lG")) mime = "image/gif";
+
+        return `data:${mime};base64,${normalized}`;
+      }
 
       async function loadComplaints() {
         if (isLoading) return;
@@ -179,8 +274,8 @@
             cache: "no-store",
           });
           if (!res.ok) throw new Error("API 호출 실패");
-          const data = await res.json();
-          renderComplaints(data);
+          allComplaints = await res.json();
+          applyFilter();
         } catch (err) {
           console.error(err);
           setFeedback("신고 데이터를 불러오지 못했습니다.", true);
@@ -188,6 +283,22 @@
           isLoading = false;
         }
       }
+
+      function applyFilter() {
+        const filtered = currentFilter
+          ? allComplaints.filter((item) => item.location_name === currentFilter)
+          : allComplaints;
+        if (!filtered.length && allComplaints.length) {
+          setFeedback("필터에 해당하는 신고가 없습니다.");
+          return;
+        }
+        renderComplaints(filtered);
+      }
+
+      filterSelect.addEventListener("change", () => {
+        currentFilter = filterSelect.value;
+        applyFilter();
+      });
 
       loadComplaints();
       setInterval(loadComplaints, 5000);
