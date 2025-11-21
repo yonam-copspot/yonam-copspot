@@ -113,6 +113,15 @@
               />
             </div>
             <div class="full">
+              <label for="userId">사용자 ID (user_id)</label>
+              <input
+                id="userId"
+                name="user_id"
+                placeholder="예: user_42"
+                required
+              />
+            </div>
+            <div class="full">
               <label for="locationName">위치명 (location_name)</label>
               <input
                 id="locationName"
@@ -176,6 +185,7 @@
 
         const payload = {
           author_name: createForm.author_name.value.trim(),
+          user_id: createForm.user_id.value.trim(),
           location_name: createForm.location_name.value.trim(),
           latitude: parseFloat(createForm.latitude.value),
           longitude: parseFloat(createForm.longitude.value),

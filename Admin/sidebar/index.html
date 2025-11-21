@@ -17,9 +17,42 @@
         overflow: hidden;
       }
 
+      .top-gap {
+        height: 5vh;
+        background: linear-gradient(90deg, #c7d8ff, #eef4ff);
+        display: flex;
+        align-items: center;
+        padding: 0 2rem;
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .tab-link {
+        text-decoration: none;
+        color: #5a657e;
+        font-weight: 600;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .tab-link.active {
+        background: #fff;
+        color: #1e4dd8;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      }
+
+      .tab-link.placeholder {
+        cursor: default;
+        opacity: 0.5;
+      }
+
       .split-layout {
         display: flex;
-        height: 100vh;
+        height: calc(100vh - 5vh);
       }
 
       .left-panel {
@@ -85,6 +118,34 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
       }
 
+      .comment-section {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .comment-item {
+        font-size: 0.85rem;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      .comment-meta {
+        font-size: 0.75rem;
+        color: #7a7d82;
+      }
+
+      .comment-empty {
+        font-size: 0.85rem;
+        color: #9aa0a6;
+        margin: 0;
+      }
+
       .complaint-photo {
         width: 100%;
         max-height: 200px;
@@ -118,6 +179,7 @@
         border: 1px solid #cfd1d5;
         border-radius: 6px;
         font-size: 0.9rem;
+        min-width: 0;
       }
 
       .btn {
@@ -137,9 +199,28 @@
         color: #fff;
         font-weight: 600;
       }
+
+      .status-message {
+        margin: 0 0 0.75rem;
+        font-size: 0.9rem;
+        color: #6a6c70;
+        min-height: 1.2em;
+        transition: opacity 0.2s ease;
+      }
+
+      .status-message.error {
+        color: #c62828;
+      }
     </style>
   </head>
   <body>
+    <div class="top-gap">
+      <nav class="tab-row">
+        <a class="tab-link active" href="/">현재 민원</a>
+        <a class="tab-link" href="/completed">처리완료 민원</a>
+        <span class="tab-link placeholder">GPT</span>
+      </nav>
+    </div>
     <main class="split-layout">
       <section class="left-panel">왼쪽 70%</section>
       <aside class="right-panel">
@@ -152,6 +233,7 @@
             <option value="기계동">기계동</option>
           </select>
         </div>
+        <p id="statusMessage" class="status-message"></p>
         <div id="complaintList" class="complaint-list"></div>
       </aside>
     </main>
@@ -159,6 +241,7 @@
     <script>
       const listEl = document.getElementById("complaintList");
       const filterSelect = document.getElementById("locationFilter");
+      const statusEl = document.getElementById("statusMessage");
       const API_BASE =
         window.location.origin && window.location.origin.startsWith("http")
           ? window.location.origin
@@ -167,18 +250,13 @@
       let currentFilter = "";
 
       function setFeedback(message, isError = false) {
-        listEl.innerHTML = `<p class="feedback${
-          isError ? " error" : ""
-        }">${message}</p>`;
-      }
-
-      function formatCoord(lat, lng) {
-        if (lat == null || lng == null) return "좌표 정보 없음";
-        return `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
+        statusEl.textContent = message;
+        statusEl.classList.toggle("error", Boolean(isError));
       }
 
       function renderComplaints(rows) {
         if (!rows.length) {
+          listEl.innerHTML = "";
           setFeedback("표시할 신고가 없습니다.");
           return;
         }
@@ -193,7 +271,10 @@
           const photoSrc = buildPhotoSrc(item.photo_base64);
 
           card.innerHTML = `
-            <div class="complaint-name">${item.author_name || "미상"}</div>
+            <div class="complaint-name">${
+              (item.author_name || "미상") +
+              (item.user_id ? ` (${item.user_id})` : "")
+            }</div>
             ${
               photoSrc
                 ? `<img class="complaint-photo" src="${photoSrc}" alt="complaint photo" />`
@@ -207,9 +288,12 @@
               item.location_name || "장소 정보 없음"
             }</p>
             <p class="complaint-line">${created}</p>
+            <div class="comment-section">
+              ${buildCommentsHtml(item.comments)}
+            </div>
             <div class="complaint-actions">
-              <input type="text" placeholder="한마디를 입력하세요" />
-              <button class="btn btn-send">전송</button>
+              <input type="text" class="comment-input" placeholder="한마디를 입력하세요" />
+              <button class="btn btn-send" data-id="${item.id}">전송</button>
               <button class="btn btn-complete" data-id="${
                 item.id
               }">처리완료</button>
@@ -220,9 +304,18 @@
       }
 
       listEl.addEventListener("click", async (event) => {
-        const button = event.target.closest(".btn-complete");
-        if (!button) return;
+        const completeBtn = event.target.closest(".btn-complete");
+        if (completeBtn) {
+          await handleDelete(completeBtn);
+          return;
+        }
 
+        const sendBtn = event.target.closest(".btn-send");
+        if (sendBtn) {
+          await handleComment(sendBtn);
+        }
+      });
+      async function handleDelete(button) {
         const id = Number(button.dataset.id);
         if (!id) return;
 
@@ -246,7 +339,66 @@
             button.textContent = "처리완료";
           }, 1500);
         }
-      });
+      }
+
+      async function handleComment(button) {
+        const card = button.closest(".complaint-card");
+        const input = card.querySelector(".comment-input");
+        const id = Number(button.dataset.id);
+        const text = input.value.trim();
+        if (!id || !text) return;
+
+        button.disabled = true;
+        button.textContent = "전송 중...";
+
+        try {
+          const res = await fetch(`${API_BASE}/api/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              complaint_id: id,
+              commenter_name: "관리자",
+              comment_text: text,
+            }),
+          });
+
+          if (!res.ok) throw new Error("댓글 등록 실패");
+          input.value = "";
+          await loadComplaints();
+        } catch (err) {
+          console.error(err);
+          button.textContent = "실패";
+          setTimeout(() => {
+            button.textContent = "전송";
+            button.disabled = false;
+          }, 1500);
+          return;
+        }
+
+        button.textContent = "전송";
+        button.disabled = false;
+      }
+
+      function buildCommentsHtml(comments = []) {
+        if (!comments.length) {
+          return '<p class="comment-empty">아직 댓글이 없습니다.</p>';
+        }
+
+        return comments
+          .map((comment) => {
+            const date = comment.created_at
+              ? new Date(comment.created_at).toLocaleString("ko-KR")
+              : "";
+            return `
+              <div class="comment-item">
+                <div><strong>${comment.commenter_name}</strong></div>
+                <div>${comment.comment_text}</div>
+                <div class="comment-meta">${date}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
 
       let isLoading = false;
 
@@ -265,6 +417,15 @@
         return `data:${mime};base64,${normalized}`;
       }
 
+      function formatCoord(lat, lng) {
+        const latNum = Number(lat);
+        const lngNum = Number(lng);
+        if (Number.isNaN(latNum) || Number.isNaN(lngNum)) {
+          return "좌표 정보 없음";
+        }
+        return `${latNum.toFixed(5)}, ${lngNum.toFixed(5)}`;
+      }
+
       async function loadComplaints() {
         if (isLoading) return;
         isLoading = true;
@@ -275,6 +436,7 @@
           });
           if (!res.ok) throw new Error("API 호출 실패");
           allComplaints = await res.json();
+          setFeedback("업데이트 완료");
           applyFilter();
         } catch (err) {
           console.error(err);
@@ -289,6 +451,7 @@
           ? allComplaints.filter((item) => item.location_name === currentFilter)
           : allComplaints;
         if (!filtered.length && allComplaints.length) {
+          listEl.innerHTML = "";
           setFeedback("필터에 해당하는 신고가 없습니다.");
           return;
         }
