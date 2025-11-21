@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans KR", Arial, sans-serif;
+        background: #eef4ff;
+      }
+
+      .split-layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .left-panel {
+        flex: 7;
+        padding: 2rem;
+      }
+
+      .right-panel {
+        flex: 3;
+        padding: 2rem;
+        background: #fdfdfd;
+        border-left: 1px solid #e3e3e3;
+        overflow-y: auto;
+      }
+
+      .right-panel h2 {
+        margin: 0 0 1.5rem;
+        font-size: 1.25rem;
+      }
+
+      .complaint-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .feedback {
+        color: #6a6c70;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .feedback.error {
+        color: #c62828;
+      }
+
+      .complaint-card {
+        border: 1px solid #e3e3e3;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      }
+
+      .complaint-name {
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .complaint-line {
+        color: #444;
+        margin: 0.25rem 0;
+        font-size: 0.95rem;
+      }
+
+      .complaint-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        align-items: center;
+      }
+
+      .complaint-actions input {
+        flex: 1;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid #cfd1d5;
+        border-radius: 6px;
+        font-size: 0.9rem;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem 0.9rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+
+      .btn-send {
+        background: #e1e5eb;
+      }
+
+      .btn-complete {
+        background: #2fb047;
+        color: #fff;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="split-layout">
+      <section class="left-panel">왼쪽 70%</section>
+      <aside class="right-panel">
+        <h2>접수 리스트</h2>
+        <div id="complaintList" class="complaint-list"></div>
+      </aside>
+    </main>
+
+    <script>
+      const listEl = document.getElementById("complaintList");
+      const API_BASE =
+        window.location.origin && window.location.origin.startsWith("http")
+          ? window.location.origin
+          : "http://localhost:3000";
+
+      function setFeedback(message, isError = false) {
+        listEl.innerHTML = `<p class="feedback${
+          isError ? " error" : ""
+        }">${message}</p>`;
+      }
+
+      function formatCoord(lat, lng) {
+        if (lat == null || lng == null) return "좌표 정보 없음";
+        return `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
+      }
+
+      function renderComplaints(rows) {
+        if (!rows.length) {
+          setFeedback("표시할 신고가 없습니다.");
+          return;
+        }
+
+        listEl.innerHTML = "";
+        rows.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "complaint-card";
+          const created = item.created_at
+            ? new Date(item.created_at).toLocaleString("ko-KR")
+            : "시간 정보 없음";
+
+          card.innerHTML = `
+            <div class="complaint-name">${item.author_name || "미상"}</div>
+            <p class="complaint-line">${formatCoord(
+              item.latitude,
+              item.longitude
+            )}</p>
+            <p class="complaint-line">${
+              item.location_name || "장소 정보 없음"
+            }</p>
+            <p class="complaint-line">${created}</p>
+            <div class="complaint-actions">
+              <input type="text" placeholder="한마디를 입력하세요" />
+              <button class="btn btn-send">전송</button>
+              <button class="btn btn-complete">처리완료</button>
+            </div>
+          `;
+          listEl.appendChild(card);
+        });
+      }
+
+      let isLoading = false;
+
+      async function loadComplaints() {
+        if (isLoading) return;
+        isLoading = true;
+        setFeedback("신고 목록을 불러오는 중...");
+        try {
+          const res = await fetch(`${API_BASE}/api/complaints`, {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error("API 호출 실패");
+          const data = await res.json();
+          renderComplaints(data);
+        } catch (err) {
+          console.error(err);
+          setFeedback("신고 데이터를 불러오지 못했습니다.", true);
+        } finally {
+          isLoading = false;
+        }
+      }
+
+      loadComplaints();
+      setInterval(loadComplaints, 5000);
+    </script>
+  </body>
+</html>
