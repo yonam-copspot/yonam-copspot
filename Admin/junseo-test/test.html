@@ -130,6 +130,15 @@
                 required
               />
             </div>
+            <div class="full">
+              <label for="description">사용자 설명 (description)</label>
+              <textarea
+                id="description"
+                name="description"
+                rows="3"
+                placeholder="상세 설명을 입력하세요"
+              ></textarea>
+            </div>
             <div>
               <label for="latitude">위도 (latitude)</label>
               <input
@@ -187,6 +196,7 @@
           author_name: createForm.author_name.value.trim(),
           user_id: createForm.user_id.value.trim(),
           location_name: createForm.location_name.value.trim(),
+          description: createForm.description.value.trim(),
           latitude: parseFloat(createForm.latitude.value),
           longitude: parseFloat(createForm.longitude.value),
           photo_base64: createForm.photo_base64.value.trim(),

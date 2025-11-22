@@ -45,6 +45,7 @@ const complaintQuery = `
          author_name,
          user_id,
          location_name,
+         description,
          latitude,
          longitude,
          photo_base64,
@@ -59,6 +60,7 @@ const completedQuery = `
          author_name,
          user_id,
          location_name,
+         description,
          latitude,
          longitude,
          photo_base64,
@@ -166,20 +168,30 @@ function createComplaint({
   author_name,
   user_id,
   location_name,
+  description,
   latitude,
   longitude,
   photo_base64,
 }) {
   return new Promise((resolve, reject) => {
     const sql = `
-      INSERT INTO complaint (photo_base64, author_name, user_id, location_name, latitude, longitude)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO complaint (
+        photo_base64,
+        author_name,
+        user_id,
+        location_name,
+        description,
+        latitude,
+        longitude
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const payload = [
       photo_base64 || "",
       author_name,
       user_id,
       location_name,
+      description || null,
       latitude,
       longitude,
     ];
@@ -236,7 +248,7 @@ function completeComplaint(id) {
         }
 
         const selectSql = `
-          SELECT id, photo_base64, author_name, user_id, location_name, latitude, longitude, created_at
+          SELECT id, photo_base64, author_name, user_id, location_name, description, latitude, longitude, created_at
           FROM complaint WHERE id = ? FOR UPDATE
         `;
 
@@ -272,10 +284,11 @@ function completeComplaint(id) {
                 author_name,
                 user_id,
                 location_name,
+                description,
                 latitude,
                 longitude,
                 created_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const insertPayload = [
               record.id,
@@ -283,6 +296,7 @@ function completeComplaint(id) {
               record.author_name,
               record.user_id,
               record.location_name,
+              record.description || null,
               record.latitude,
               record.longitude,
               record.created_at,

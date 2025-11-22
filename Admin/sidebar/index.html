@@ -166,6 +166,16 @@
         font-size: 0.95rem;
       }
 
+      .complaint-desc {
+        margin: 0.5rem 0;
+        padding: 0.5rem 0.75rem;
+        background: #f6f8ff;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #2f3852;
+        white-space: pre-wrap;
+      }
+
       .complaint-actions {
         display: flex;
         gap: 0.5rem;
@@ -218,7 +228,7 @@
       <nav class="tab-row">
         <a class="tab-link active" href="/">현재 민원</a>
         <a class="tab-link" href="/completed">처리완료 민원</a>
-        <span class="tab-link placeholder">GPT</span>
+        <a class="tab-link" href="/chatbot">GPT</a>
       </nav>
     </div>
     <main class="split-layout">
@@ -287,6 +297,11 @@
             <p class="complaint-line">${
               item.location_name || "장소 정보 없음"
             }</p>
+            ${
+              item.description
+                ? `<p class="complaint-desc">${item.description}</p>`
+                : ""
+            }
             <p class="complaint-line">${created}</p>
             <div class="comment-section">
               ${buildCommentsHtml(item.comments)}

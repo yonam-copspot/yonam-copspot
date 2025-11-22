@@ -112,6 +112,16 @@
         color: #5c6271;
       }
 
+      .description-box {
+        grid-column: 1 / -1;
+        background: #f6f8ff;
+        border-radius: 10px;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.9rem;
+        color: #2f3852;
+        white-space: pre-wrap;
+      }
+
       .comment-section {
         grid-column: 1 / -1;
         margin-top: 0.5rem;
@@ -165,7 +175,7 @@
       <nav class="tab-row">
         <a class="tab-link" href="/">현재 민원</a>
         <a class="tab-link active" href="/completed">처리완료 민원</a>
-        <span class="tab-link placeholder">GPT</span>
+        <a class="tab-link" href="/chatbot">GPT</a>
       </nav>
     </div>
     <main>
@@ -279,6 +289,11 @@
               item.latitude,
               item.longitude
             )}</div>
+            ${
+              item.description
+                ? `<div class="description-box">${item.description}</div>`
+                : ""
+            }
           `;
 
           const photoSrc = buildPhotoSrc(item.photo_base64);
