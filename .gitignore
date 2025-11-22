@@ -2,3 +2,5 @@ api.txt
 
 # Local environment secrets
 Admin/sidebar/.env
+
+config.js

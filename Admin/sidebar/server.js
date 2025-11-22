@@ -13,6 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const publicDir = __dirname;
 const chatbotDir = path.join(__dirname, "..", "..", "AIchatbot");
+const projectRootDir = path.join(__dirname, "..", "project-root");
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -33,6 +34,7 @@ app.use(express.json({ limit: "15mb" }));
 
 app.use(express.static(publicDir));
 app.use("/chatbot-assets", express.static(chatbotDir));
+app.use("/project-preview", express.static(projectRootDir));
 
 app.get("/api/complaints", async (_req, res) => {
   try {
