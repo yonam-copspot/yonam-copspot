@@ -12,6 +12,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 const publicDir = __dirname;
+const chatbotDir = path.join(__dirname, "..", "..", "AIchatbot");
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -28,9 +29,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
 
 app.use(express.static(publicDir));
+app.use("/chatbot-assets", express.static(chatbotDir));
 
 app.get("/api/complaints", async (_req, res) => {
   try {
@@ -58,6 +60,7 @@ app.post("/api/create", async (req, res) => {
     author_name,
     user_id,
     location_name,
+    description,
     latitude,
     longitude,
     photo_base64,
@@ -75,10 +78,13 @@ app.post("/api/create", async (req, res) => {
   }
 
   try {
+    const normalizedDescription =
+      typeof description === "string" ? description.trim() : "";
     const insertId = await createComplaint({
       author_name,
       user_id: user_id.trim(),
       location_name,
+      description: normalizedDescription || null,
       latitude,
       longitude,
       photo_base64,
@@ -132,6 +138,10 @@ app.post("/api/comments", async (req, res) => {
 
 app.get("/completed", (_req, res) => {
   res.sendFile(path.join(publicDir, "completed.html"));
+});
+
+app.get("/chatbot", (_req, res) => {
+  res.sendFile(path.join(chatbotDir, "chatbot.html"));
 });
 
 app.use((_req, res) => {

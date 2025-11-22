@@ -21,15 +21,22 @@
       }
 
       body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        background: radial-gradient(circle at top left, #eff6ff, #f9fafb);
+        margin: 0;
+        font-family: "Noto Sans KR", Arial, sans-serif;
+        background: #eef4ff;
         min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        color: var(--text-main);
+        font-size: 0.95rem;
+      }
+
+      .page-body {
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
-        color: var(--text-main);
+        padding: 20px;
       }
 
       .container {
@@ -54,6 +61,35 @@
         justify-content: space-between;
         align-items: center;
         background: linear-gradient(90deg, #eff6ff, #ffffff);
+      }
+
+      .top-gap {
+        height: 5vh;
+        background: linear-gradient(90deg, #c7d8ff, #eef4ff);
+        display: flex;
+        align-items: center;
+        padding: 0 2rem;
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .tab-link {
+        text-decoration: none;
+        color: #5a657e;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .tab-link.active {
+        background: #fff;
+        color: #1e4dd8;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
       }
 
       .header-left {
@@ -84,11 +120,11 @@
       }
 
       .title-main {
-        font-size: 16px;
+        font-size: 1rem;
         font-weight: 700;
       }
       .title-sub {
-        font-size: 12px;
+        font-size: 0.85rem;
         color: var(--text-sub);
       }
 
@@ -235,7 +271,7 @@
       .bubble {
         max-width: 78%;
         padding: 8px 10px;
-        font-size: 14px;
+        font-size: 0.9rem;
         border-radius: 14px;
         line-height: 1.45;
         white-space: pre-wrap;
@@ -277,7 +313,7 @@
         padding: 8px 10px;
         border-radius: 999px;
         border: 1px solid var(--border);
-        font-size: 14px;
+        font-size: 0.9rem;
         resize: none;
         outline: none;
         line-height: 1.4;
@@ -297,7 +333,7 @@
         border: none;
         background: var(--primary);
         color: white;
-        font-size: 14px;
+        font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
         display: inline-flex;
@@ -361,72 +397,85 @@
     </style>
   </head>
   <body>
-    <div class="container">
-      <header class="header">
-        <div class="header-left">
-          <div class="logo">S</div>
-          <div>
-            <div class="title-main">학교 민원 인수인계 챗봇</div>
-            <div class="title-sub">전임자 인수인계서 기반 관리자 Q&amp;A</div>
-          </div>
-        </div>
-        <div>
-          <div class="badge">
-            <span class="badge-dot"></span>
-            <span>GPT API · 대회용</span>
-          </div>
-          <div class="header-right-text">
-            내부 참고용 · 실제 행정 결정은 담당자 권한
-          </div>
-        </div>
-      </header>
-
-      <main class="body">
-        <aside class="sidebar">
-          <div class="sidebar-title">
-            <span class="sidebar-dot"></span>
-            추천 질문
-          </div>
-          <ul>
-            <li>야간 포트홀 민원 접수 시 처리 순서를 알려줘.</li>
-            <li>학생 안전 관련 민원은 어떤 순서로 우선 처리해야 해?</li>
-            <li>민원 답변 예시 문장을 정중하게 3개 만들어 줘.</li>
-            <li>사진만 있고 정확한 위치가 애매한 민원은 어떻게 안내해야 해?</li>
-          </ul>
-          <div style="font-size: 11px">
-            ⚠️ 챗봇 답변은 참고용입니다.<br />
-            공문 작성 / 예산 집행 등은 반드시 담당자가 최종 확인 후 결정하세요.
-          </div>
-        </aside>
-
-        <section class="chat">
-          <div class="chat-top-info">
-            엔터 → 전송, Shift+엔터 → 줄바꿈 · 전임자 인수인계서 내용을 기반으로
-            답변합니다.
-          </div>
-          <div id="chat-log"></div>
-
-          <footer class="footer">
-            <form id="chat-form" class="form">
-              <textarea
-                id="user-input"
-                rows="1"
-                placeholder="예) 민원이 접수되었을 때, 인수인계 기준 처리 절차를 알려줘."
-              ></textarea>
-              <button type="submit" id="send-btn">
-                <span>➤</span>
-                <span>전송</span>
-              </button>
-            </form>
-            <div class="status-bar">
-              <div class="dots" id="loading-dots">
-                <span></span><span></span><span></span>
-              </div>
-              <div>답변은 인수인계서·학교 규정과 다를 수 있습니다.</div>
+    <div class="top-gap">
+      <nav class="tab-row">
+        <a class="tab-link" href="/">현재 민원</a>
+        <a class="tab-link" href="/completed">처리완료 민원</a>
+        <a class="tab-link active" href="/chatbot">GPT</a>
+      </nav>
+    </div>
+    <div class="page-body">
+      <div class="container">
+        <header class="header">
+          <div class="header-left">
+            <div class="logo">S</div>
+            <div>
+              <div class="title-main">학교 민원 인수인계 챗봇</div>
+              <div class="title-sub">전임자 인수인계서 기반 관리자 Q&amp;A</div>
             </div>
-          </footer>
-        </section>
-      </main>
+          </div>
+          <div>
+            <div class="badge">
+              <span class="badge-dot"></span>
+              <span>GPT API · 대회용</span>
+            </div>
+            <div class="header-right-text">
+              내부 참고용 · 실제 행정 결정은 담당자 권한
+            </div>
+          </div>
+        </header>
+
+        <main class="body">
+          <aside class="sidebar">
+            <div class="sidebar-title">
+              <span class="sidebar-dot"></span>
+              추천 질문
+            </div>
+            <ul>
+              <li>야간 포트홀 민원 접수 시 처리 순서를 알려줘.</li>
+              <li>학생 안전 관련 민원은 어떤 순서로 우선 처리해야 해?</li>
+              <li>민원 답변 예시 문장을 정중하게 3개 만들어 줘.</li>
+              <li>
+                사진만 있고 정확한 위치가 애매한 민원은 어떻게 안내해야 해?
+              </li>
+            </ul>
+            <div style="font-size: 11px">
+              ⚠️ 챗봇 답변은 참고용입니다.<br />
+              공문 작성 / 예산 집행 등은 반드시 담당자가 최종 확인 후
+              결정하세요.
+            </div>
+          </aside>
+
+          <section class="chat">
+            <div class="chat-top-info">
+              엔터 → 전송, Shift+엔터 → 줄바꿈 · 전임자 인수인계서 내용을
+              기반으로 답변합니다.
+            </div>
+            <div id="chat-log"></div>
+
+            <footer class="footer">
+              <form id="chat-form" class="form">
+                <textarea
+                  id="user-input"
+                  rows="1"
+                  placeholder="예) 민원이 접수되었을 때, 인수인계 기준 처리 절차를 알려줘."
+                ></textarea>
+                <button type="submit" id="send-btn">
+                  <span>➤</span>
+                  <span>전송</span>
+                </button>
+              </form>
+              <div class="status-bar">
+                <div class="dots" id="loading-dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <div>답변은 인수인계서·학교 규정과 다를 수 있습니다.</div>
+              </div>
+            </footer>
+          </section>
+        </main>
+      </div>
+      </div>
     </div>
 
     <script>
@@ -436,7 +485,7 @@
       // api.txt에서 키 읽어오기
       async function loadApiKey() {
         try {
-          const res = await fetch("./api.txt");
+          const res = await fetch("/chatbot-assets/api.txt");
           if (!res.ok) {
             throw new Error(
               "api.txt를 불러올 수 없습니다. (HTTP " + res.status + ")"
