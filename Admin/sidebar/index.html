@@ -375,6 +375,15 @@
       let allComplaints = [];
       let currentFilter = "";
 
+      function isTypingComment() {
+        const inputs = document.querySelectorAll(".comment-input");
+        return Array.from(inputs).some((input) => {
+          const hasText = input.value && input.value.trim().length > 0;
+          const isActive = document.activeElement === input;
+          return hasText || isActive;
+        });
+      }
+
       function setFeedback(message, isError = false) {
         statusEl.textContent = message;
         statusEl.classList.toggle("error", Boolean(isError));
@@ -557,7 +566,12 @@
         return `${latNum.toFixed(5)}, ${lngNum.toFixed(5)}`;
       }
 
-      async function loadComplaints() {
+      async function loadComplaints(options = {}) {
+        const { allowDefer = false } = options;
+        if (allowDefer && isTypingComment()) {
+          setFeedback("입력 중에는 자동 새로고침이 잠시 멈춥니다.");
+          return;
+        }
         if (isLoading) return;
         isLoading = true;
         setFeedback("신고 목록을 불러오는 중...");
@@ -595,7 +609,7 @@
       });
 
       loadComplaints();
-      setInterval(loadComplaints, 5000);
+      setInterval(() => loadComplaints({ allowDefer: true }), 5000);
     </script>
   </body>
 </html>
