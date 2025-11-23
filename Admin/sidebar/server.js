@@ -8,6 +8,7 @@ const {
   completeComplaint,
   createComment,
 } = require("./lib/dbconnect");
+const { fetchMyComplaints } = require("./lib/mobileQueries");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,42 @@ app.get("/api/completed", async (_req, res) => {
     res.json(rows);
   } catch (err) {
     console.error("Failed to load completed complaints", err);
+    res.status(500).json({ message: "DB_ERROR" });
+  }
+});
+
+app.get("/api/mobile/completions", async (req, res) => {
+  const rawLimit = Number(req.query.limit) || 100;
+  const limit = Math.min(Math.max(rawLimit, 1), 300);
+
+  try {
+    const rows = await fetchCompletedComplaints(limit);
+    const payload = rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      registered_at: row.created_at,
+      completed_at: row.done_at,
+      address: row.location_name || "",
+      detail: row.description || "",
+    }));
+    res.json(payload);
+  } catch (err) {
+    console.error("Failed to load mobile completion snapshot", err);
+    res.status(500).json({ message: "DB_ERROR" });
+  }
+});
+
+app.get("/api/mobile/my-complaints", async (req, res) => {
+  const userId = (req.query.user_id || "").trim();
+  if (!userId) {
+    return res.status(400).json({ message: "MISSING_USER_ID" });
+  }
+
+  try {
+    const rows = await fetchMyComplaints(userId);
+    res.json(rows);
+  } catch (err) {
+    console.error("Failed to load my complaints", err);
     res.status(500).json({ message: "DB_ERROR" });
   }
 });
