@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.yonam_copspot.network.RetrofitClient
 import com.example.yonam_copspot.ui.MyComplaintUiModel
 import kotlinx.coroutines.launch
+import com.example.yonam_copspot.network.dto.MyComplaintItemDto
+
 
 class MyComplaintsActivity : AppCompatActivity() {
 
@@ -58,32 +60,19 @@ class MyComplaintsActivity : AppCompatActivity() {
     private fun loadMyComplaints() {
         lifecycleScope.launch {
             try {
-                val resp = RetrofitClient.api.getMyComplaints(loginUserId)
+                // getMyComplaints 가 이제 List<MyComplaintItemDto> 를 리턴한다고 가정
+                val resp: List<MyComplaintItemDto> =
+                    RetrofitClient.api.getMyComplaints(loginUserId)
 
-                val uiList = mutableListOf<MyComplaintUiModel>()
-
-                // 진행 중 민원
-                resp.ongoing.forEach { c ->
-                    uiList += MyComplaintUiModel(
-                        id = c.id,
-                        locationName = c.locationName,
-                        description = c.description,
-                        createdAt = c.createdAt,
-                        doneAt = null,
-                        isDone = false,
-                        comments = c.comments
-                    )
-                }
-
-                // 완료된 민원
-                resp.done.forEach { c ->
-                    uiList += MyComplaintUiModel(
-                        id = c.id,
+                // ★ 여기서 람다 파라미터 타입을 명시적으로 적어줌
+                val uiList: List<MyComplaintUiModel> = resp.map { c: MyComplaintItemDto ->
+                    MyComplaintUiModel(
+                        id = c.id,                      // id 없으면 c.id ?: 0L 로
                         locationName = c.locationName,
                         description = c.description,
                         createdAt = c.createdAt,
                         doneAt = c.doneAt,
-                        isDone = true,
+                        isDone = c.doneAt != null,      // doneAt 이 null 아니면 완료
                         comments = c.comments
                     )
                 }
@@ -107,6 +96,8 @@ class MyComplaintsActivity : AppCompatActivity() {
             }
         }
     }
+
+
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
