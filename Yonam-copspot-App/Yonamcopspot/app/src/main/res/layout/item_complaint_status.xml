@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/card_background"
+    android:layout_marginBottom="8dp">
+
+    <!-- 장소 + 처리여부 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/textStatusLocation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="장소"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/textStatusState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="처리완료"
+            android:textStyle="bold"
+            android:textColor="@android:color/holo_green_light"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 등록일시 / 처리완료일시 -->
+    <TextView
+        android:id="@+id/textStatusCreatedAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="등록일시: 2025-01-01 12:00"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/textStatusDoneAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="처리완료일시: 2025-01-02 15:30"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="2dp" />
+
+    <!-- 상세정보 -->
+    <TextView
+        android:id="@+id/textStatusDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="상세정보 내용..."
+        android:textSize="13sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="6dp" />
+</LinearLayout>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/card_background"
+    android:layout_marginBottom="8dp">
+
+    <!-- 첫 줄: 민원 ID -->
+    <TextView
+        android:id="@+id/textCompletionId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="민원 ID: 1"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <!-- 둘째 줄: 주소 -->
+    <TextView
+        android:id="@+id/textCompletionLocation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="경기도 이천시 ..."
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:layout_marginTop="4dp"
+        android:textStyle="bold" />
+
+    <!-- 셋째 줄: 등록/완료 일시 -->
+    <TextView
+        android:id="@+id/textCompletionCreatedAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="등록일시: 2025-11-23T10:00:00"
+        android:textColor="@android:color/white"
+        android:textSize="11sp"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/textCompletionDoneAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="완료일시: 2025-11-23T12:00:00"
+        android:textColor="@android:color/white"
+        android:textSize="11sp"
+        android:layout_marginTop="2dp" />
+
+    <!-- 넷째 줄: 상세 내용 -->
+    <TextView
+        android:id="@+id/textCompletionDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="상세 내용..."
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:layout_marginTop="6dp" />
+
+</LinearLayout>
