@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/card_background"
+    android:layout_marginBottom="8dp">
+
+    <!-- 첫 줄: 장소 + 완료여부 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/textMyLocation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="장소"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/textMyStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="진행중"
+            android:textStyle="bold"
+            android:textColor="@android:color/holo_orange_light"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 둘째 줄: 등록일시 / 완료일시 -->
+    <TextView
+        android:id="@+id/textMyCreatedAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="등록일시: -"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/textMyDoneAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="완료일시: -"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="2dp" />
+
+    <!-- 셋째 줄: 상세 내용 -->
+    <TextView
+        android:id="@+id/textMyDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="상세 내용..."
+        android:textSize="13sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="6dp" />
+
+    <!-- 넷째 줄: 댓글 개수 -->
+    <TextView
+        android:id="@+id/textMyCommentCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="댓글 0개"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="6dp" />
+
+</LinearLayout>

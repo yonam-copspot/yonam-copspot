@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrollViewCreateComplaint"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/main_background_gradient"
+    android:fillViewport="true">
+
+    <!-- 화면 전체(액션바 아래~하단바 위)를 채우는 컨테이너 -->
+    <!-- 🔥 중요: layout_height는 wrap_content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="88dp"
+        android:paddingBottom="48dp">
+
+        <!-- 사진 촬영/미리보기 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="사진"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="4dp" />
+
+        <ImageView
+            android:id="@+id/imagePreview"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:scaleType="centerCrop"
+            android:background="@android:color/darker_gray"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnTakePhoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="사진 촬영" />
+
+        <!-- 이름 / 아이디 / 장소 / 상세설명 -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="작성자 이름"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="16dp" />
+
+        <EditText
+            android:id="@+id/editWriterName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="1"
+            android:maxLines="1"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp"
+            android:textColor="@android:color/black"
+            android:textColorHint="#888888" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="작성자 아이디"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/editUserId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="1"
+            android:maxLines="1"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp"
+            android:hint="아이디"
+            android:textColor="@android:color/black"
+            android:textColorHint="#888888" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="장소"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/editLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="1"
+            android:maxLines="1"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp"
+            android:hint="예: 산학협동관, 흡연장"
+            android:textColor="@android:color/black"
+            android:textColorHint="#888888" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="상세 설명"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/editMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="4"
+            android:maxLines="6"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="@android:color/black"
+            android:textColorHint="#888888" />
+
+        <!-- 버튼 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="right">
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="취소" />
+
+            <Button
+                android:id="@+id/btnSubmitComplaint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="등록"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>
