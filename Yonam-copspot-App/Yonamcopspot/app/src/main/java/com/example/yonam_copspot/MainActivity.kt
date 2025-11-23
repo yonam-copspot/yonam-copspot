@@ -3,15 +3,31 @@ package com.example.yonam_copspot
 
 import android.content.Intent
 import android.os.Bundle
+<<<<<<< Updated upstream
 import android.view.View
+=======
+<<<<<<< HEAD
+=======
+import android.view.View
+>>>>>>> copspot-android-frontend
+>>>>>>> Stashed changes
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+<<<<<<< Updated upstream
+=======
+>>>>>>> copspot-android-frontend
+>>>>>>> Stashed changes
 import androidx.lifecycle.lifecycleScope
 import com.example.yonam_copspot.network.RetrofitClient
 import kotlinx.coroutines.launch
@@ -47,6 +63,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
 
     // actionbar 자동 완성을 위한 BaseActivity 클래스 생성 -> import 처리완료
     abstract class BaseActivity : AppCompatActivity() {
@@ -73,6 +94,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+<<<<<<< Updated upstream
+=======
+>>>>>>> copspot-android-frontend
+>>>>>>> Stashed changes
     override fun onResume() {
         super.onResume()
         loadSummaryFromServer()

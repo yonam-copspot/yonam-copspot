@@ -1,3 +1,24 @@
+<<<<<<< Updated upstream
+# local / secret
+local.properties
+*.keystore
+*.jks
+=======
+<<<<<<< HEAD
+api.txt
+>>>>>>> Stashed changes
+
+# Gradle / Android build outputs
+.gradle/
+**/build/
+**/out/
+.externalNativeBuild/
+.cxx/
+
+<<<<<<< Updated upstream
+=======
+config.js
+=======
 # local / secret
 local.properties
 *.keystore
@@ -10,6 +31,7 @@ local.properties
 .externalNativeBuild/
 .cxx/
 
+>>>>>>> Stashed changes
 # IDE
 .idea/
 *.iml
@@ -20,3 +42,7 @@ local.properties
 # OS junk
 .DS_Store
 Thumbs.db
+<<<<<<< Updated upstream
+=======
+>>>>>>> copspot-android-frontend
+>>>>>>> Stashed changes
