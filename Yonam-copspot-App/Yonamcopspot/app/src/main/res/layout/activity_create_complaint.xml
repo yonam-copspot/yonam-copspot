@@ -13,15 +13,7 @@
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-<<<<<<< Updated upstream
         android:paddingTop="120dp"
-=======
-<<<<<<< HEAD
-        android:paddingTop="88dp"
-=======
-        android:paddingTop="120dp"
->>>>>>> copspot-android-frontend
->>>>>>> Stashed changes
         android:paddingBottom="48dp">
 
         <!-- 타이틀 -->
@@ -84,52 +76,12 @@
                 android:padding="12dp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-<<<<<<< Updated upstream
-
-=======
-<<<<<<< HEAD
         <!-- 장소 -->
-=======
-
->>>>>>> copspot-android-frontend
->>>>>>> Stashed changes
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="장소"
             android:textColor="@android:color/white"
-<<<<<<< Updated upstream
-            android:layout_marginBottom="6dp"/>
-=======
-<<<<<<< HEAD
-            android:layout_marginBottom="4dp"/>
->>>>>>> Stashed changes
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroupLocation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:visibility="visible"
-            app:singleSelection="true"
-            app:selectionRequired="true"
-            app:chipSpacingHorizontal="8dp"
-            app:chipSpacingVertical="8dp">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipLoc1"
-                style="@style/LocationChipStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-<<<<<<< Updated upstream
-=======
-                android:hint="예: 산학협동관, 흡연장"
-                android:inputType="text"
-                android:textColor="@android:color/black"
-                android:textSize="14sp"
-                android:padding="12dp"/>
-        </com.google.android.material.textfield.TextInputLayout>
-=======
             android:layout_marginBottom="6dp"/>
 
         <com.google.android.material.chip.ChipGroup
@@ -148,7 +100,6 @@
                 style="@style/LocationChipStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
->>>>>>> Stashed changes
                 android:text="산학협동관"
                 android:checkable="true"
                 android:checked="true"/>
@@ -185,12 +136,6 @@
                 android:text="기타"
                 android:checkable="true"/>
         </com.google.android.material.chip.ChipGroup>
-
-
-<<<<<<< Updated upstream
-=======
->>>>>>> copspot-android-frontend
->>>>>>> Stashed changes
 
         <!-- 상세설명 -->
         <TextView

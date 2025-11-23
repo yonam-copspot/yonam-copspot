@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 나중에 서버/DB랑 통신할 때 필요 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 위치 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Yonamcopspot"
+        android:usesCleartextTraffic="true">
+
+        <!-- 민원 상세 화면 -->
+        <activity
+            android:name=".ComplaintDetailActivity"
+            android:exported="false"
+            android:label="민원 상세" />
+
+        <!-- 나의 민원 목록 -->
+        <activity
+            android:name=".MyComplaintsActivity"
+            android:exported="false"
+            android:label="나의 민원" />
+
+        <!-- 민원 작성 화면 -->
+        <activity
+            android:name=".CreateComplaintActivity"
+            android:exported="false"
+            android:label="민원 작성"
+            android:windowSoftInputMode="stateHidden|adjustPan"/>
+
+        <!-- 메인 화면 : 시작 페이지 (런처) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 민원처리현황 -->
+        <activity android:name=".ComplaintStatusActivity" />
+
+
+    </application>
+
+</manifest>

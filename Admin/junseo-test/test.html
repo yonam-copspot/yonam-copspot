@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      .split-layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .left-panel {
+        flex: 7;
+        padding: 2rem;
+        background: #eef4ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .config-card {
+        width: 100%;
+        max-width: 480px;
+        background: #fff;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+
+      .config-card h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+      }
+
+      .config-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .config-grid .full {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 0.35rem;
+        color: #333;
+      }
+
+      input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #cfd4dc;
+        border-radius: 8px;
+        font-size: 0.95rem;
+      }
+
+      .actions {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .btn-primary {
+        background: #2374f3;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 0.65rem 1.6rem;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      .status {
+        font-size: 0.9rem;
+        color: #2374f3;
+      }
+
+      .right-panel {
+        flex: 3;
+        padding: 2rem;
+        background: #fff1e6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="split-layout">
+      <section class="left-panel">
+        <form class="config-card" id="createForm">
+          <h2>신고 데이터 생성</h2>
+          <div class="config-grid">
+            <div class="full">
+              <label for="authorName">작성자 이름 (author_name)</label>
+              <input
+                id="authorName"
+                name="author_name"
+                placeholder="예: 김철수"
+                required
+              />
+            </div>
+            <div class="full">
+              <label for="userId">사용자 ID (user_id)</label>
+              <input
+                id="userId"
+                name="user_id"
+                placeholder="예: user_42"
+                required
+              />
+            </div>
+            <div class="full">
+              <label for="locationName">위치명 (location_name)</label>
+              <input
+                id="locationName"
+                name="location_name"
+                placeholder="예: 산학협동관"
+                required
+              />
+            </div>
+            <div class="full">
+              <label for="description">사용자 설명 (description)</label>
+              <textarea
+                id="description"
+                name="description"
+                rows="3"
+                placeholder="상세 설명을 입력하세요"
+              ></textarea>
+            </div>
+            <div>
+              <label for="latitude">위도 (latitude)</label>
+              <input
+                id="latitude"
+                name="latitude"
+                type="number"
+                step="0.0000001"
+                placeholder="37.1234567"
+                required
+              />
+            </div>
+            <div>
+              <label for="longitude">경도 (longitude)</label>
+              <input
+                id="longitude"
+                name="longitude"
+                type="number"
+                step="0.0000001"
+                placeholder="127.1234567"
+                required
+              />
+            </div>
+            <div class="full">
+              <label for="photoBase64">사진 데이터 (photo_base64)</label>
+              <textarea
+                id="photoBase64"
+                name="photo_base64"
+                rows="4"
+                placeholder="Base64 문자열을 붙여넣으세요"
+              ></textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" type="submit">신고 추가</button>
+            <span class="status" id="createStatus"></span>
+          </div>
+        </form>
+      </section>
+      <aside class="right-panel">오른쪽 30%</aside>
+    </main>
+
+    <script>
+      const createForm = document.getElementById("createForm");
+      const createStatus = document.getElementById("createStatus");
+      const API_BASE =
+        window.location.origin && window.location.origin.startsWith("http")
+          ? window.location.origin
+          : "http://localhost:3000";
+
+      createForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        createStatus.textContent = "전송 중...";
+
+        const payload = {
+          author_name: createForm.author_name.value.trim(),
+          user_id: createForm.user_id.value.trim(),
+          location_name: createForm.location_name.value.trim(),
+          description: createForm.description.value.trim(),
+          latitude: parseFloat(createForm.latitude.value),
+          longitude: parseFloat(createForm.longitude.value),
+          photo_base64: createForm.photo_base64.value.trim(),
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error("생성 실패");
+          createStatus.textContent = "등록 완료";
+          createForm.reset();
+        } catch (error) {
+          console.error(error);
+          createStatus.textContent = "에러";
+        }
+      });
+    </script>
+  </body>
+</html>
