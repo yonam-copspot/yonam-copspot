@@ -6,7 +6,11 @@ import com.example.yonam_copspot.network.dto.ComplaintDto
 import com.example.yonam_copspot.network.dto.CompletionDto
 import com.example.yonam_copspot.network.dto.CreateComplaintRequestDto
 import com.example.yonam_copspot.network.dto.DoneResponseDto
-import com.example.yonam_copspot.network.dto.MyComplaintsResponseDto
+// ↓ 이 줄 추가!
+import com.example.yonam_copspot.network.dto.MyComplaintItemDto
+// ↓ 이건 이제 안 쓰면 지워도 됨
+// import com.example.yonam_copspot.network.dto.MyComplaintsResponseDto
+
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -72,5 +76,6 @@ interface CopspotApi {
     @GET("api/mobile/my-complaints")
     suspend fun getMyComplaints(
         @Query("user_id") userId: String
-    ): MyComplaintsResponseDto
+    ): List<MyComplaintItemDto>
+
 }
