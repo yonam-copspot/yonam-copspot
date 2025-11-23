@@ -5,7 +5,7 @@
 
     let kakaoScriptPromise = null;
     let mapInstance = null;
-    let markerInstance = null;
+    let clickMarker = null;
 
     const ensureScript = () => {
         if (!window.KAKAO_MAP_APP_KEY || window.KAKAO_MAP_APP_KEY === 'YOUR_APP_KEY_HERE') {
@@ -34,18 +34,30 @@
         return kakaoScriptPromise;
     };
 
+    const showCoords = (lat, lng) => {
+        const output = document.getElementById('coords-output');
+        if (!output) return;
+        output.textContent = `위도 ${lat.toFixed(6)}, 경도 ${lng.toFixed(6)}`;
+    };
+
     const placeMarker = (lat, lng) => {
-        if (!mapInstance || !window.kakao || !window.kakao.maps) {
-            return;
-        }
-
+        if (!mapInstance || !window.kakao || !window.kakao.maps) return;
         const position = new window.kakao.maps.LatLng(lat, lng);
-        if (!markerInstance) {
-            markerInstance = new window.kakao.maps.Marker({ map: mapInstance });
+
+        if (!clickMarker) {
+            clickMarker = new window.kakao.maps.Marker({
+                map: mapInstance,
+            });
         }
 
-        markerInstance.setPosition(position);
-        mapInstance.setCenter(position);
+        clickMarker.setPosition(position);
+    };
+
+    const handleMapClick = (mouseEvent) => {
+        const lat = mouseEvent.latLng.getLat();
+        const lng = mouseEvent.latLng.getLng();
+        placeMarker(lat, lng);
+        showCoords(lat, lng);
     };
 
     const initMap = () => {
@@ -56,18 +68,17 @@
         }
 
         const centerPosition = new window.kakao.maps.LatLng(DEFAULT_COORD.lat, DEFAULT_COORD.lng);
-        const mapOptions = {
+        mapInstance = new window.kakao.maps.Map(mapContainer, {
             center: centerPosition,
             level: 3,
-        };
+        });
 
-        mapInstance = new window.kakao.maps.Map(mapContainer, mapOptions);
         placeMarker(DEFAULT_COORD.lat, DEFAULT_COORD.lng);
-
-        return mapInstance;
+        showCoords(DEFAULT_COORD.lat, DEFAULT_COORD.lng);
+        window.kakao.maps.event.addListener(mapInstance, 'click', handleMapClick);
     };
 
-    const loadKakaoMap = () => {
+    const loadJunseoMap = () => {
         if (window.kakao && window.kakao.maps) {
             window.kakao.maps.load(initMap);
             return;
@@ -78,5 +89,5 @@
             .catch((error) => console.error(error.message));
     };
 
-    window.loadKakaoMap = loadKakaoMap;
+    document.addEventListener('DOMContentLoaded', loadJunseoMap);
 })();
