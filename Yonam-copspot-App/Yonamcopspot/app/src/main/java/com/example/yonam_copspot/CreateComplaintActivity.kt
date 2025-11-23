@@ -1,26 +1,31 @@
 package com.example.yonam_copspot
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Base64
+import android.util.Log
 import android.view.MenuItem
-import android.widget.*
+import android.view.View
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.ScrollView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.yonam_copspot.network.RetrofitClient
 import com.example.yonam_copspot.network.dto.CreateComplaintRequestDto
-import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import android.util.Log
-
-
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 
 class CreateComplaintActivity : AppCompatActivity() {
 
@@ -40,7 +45,10 @@ class CreateComplaintActivity : AppCompatActivity() {
     private lateinit var btnTakePhoto: Button
     private lateinit var editWriterName: EditText
     private lateinit var editUserId: EditText
-    private lateinit var editLocation: EditText
+
+    // ✅ 장소 칩 관련
+    private lateinit var chipGroupLocation: ChipGroup
+
     private lateinit var editMessage: EditText
     private lateinit var btnSubmit: Button
     private lateinit var btnCancel: Button
@@ -72,10 +80,12 @@ class CreateComplaintActivity : AppCompatActivity() {
         btnTakePhoto = findViewById(R.id.btnTakePhoto)
         editWriterName = findViewById(R.id.editWriterName)
         editUserId = findViewById(R.id.editUserId)
-        editLocation = findViewById(R.id.editLocation)
         editMessage = findViewById(R.id.editMessage)
         btnSubmit = findViewById(R.id.btnSubmitComplaint)
         btnCancel = findViewById(R.id.btnCancel)
+
+        // ✅ 칩 뷰 연결
+        chipGroupLocation = findViewById(R.id.chipGroupLocation)
 
         // 기본값으로 로그인 아이디/이름 넣어두기 (수정 가능)
         editUserId.setText(loginUserId)
@@ -92,13 +102,15 @@ class CreateComplaintActivity : AppCompatActivity() {
         btnCancel.setOnClickListener {
             finish()
         }
+    }
 
-        // 🔹 이거도 사실 없어도 됨 (원하면 두 둬도 상관 없지만 필수 X)
-        // editMessage.setOnClickListener {
-        //     scrollView.post {
-        //         scrollView.smoothScrollTo(0, editMessage.bottom)
-        //     }
-        // }
+    // ✅ 칩에서 장소 가져오기
+    private fun getSelectedLocation(): String {
+        val checkedId = chipGroupLocation.checkedChipId
+        if (checkedId == View.NO_ID) return ""
+        return chipGroupLocation.findViewById<Chip>(checkedId)
+            .text.toString()
+            .trim()
     }
 
     private fun submitComplaintToServer(
@@ -134,11 +146,11 @@ class CreateComplaintActivity : AppCompatActivity() {
     private fun submitComplaintWithLocation() {
         val writerName = editWriterName.text.toString().trim()
         val userId = editUserId.text.toString().trim()
-        val locationText = editLocation.text.toString().trim()
+        val locationText = getSelectedLocation()
         val description = editMessage.text.toString().trim()
 
         if (writerName.isEmpty() || userId.isEmpty() || locationText.isEmpty() || description.isEmpty()) {
-            Toast.makeText(this, "이름, 아이디, 장소, 설명을 모두 입력해 주세요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "이름, 학번, 장소, 설명을 모두 입력해 주세요.", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -188,6 +200,7 @@ class CreateComplaintActivity : AppCompatActivity() {
                 )
             }
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -200,15 +213,17 @@ class CreateComplaintActivity : AppCompatActivity() {
                 // 권한을 방금 허용했으니 다시 시도
                 submitComplaintWithLocation()
             } else {
-                // 거부한 경우: 위도/경도 없이 그냥 등록할지 여부 선택
+                // 거부한 경우: 위도/경도 없이 그냥 등록
                 Toast.makeText(this, "위치 권한이 없어 위치 없이 민원을 등록합니다.", Toast.LENGTH_SHORT).show()
 
                 val writerName = editWriterName.text.toString().trim()
                 val userId = editUserId.text.toString().trim()
-                val locationText = editLocation.text.toString().trim()
+                val locationText = getSelectedLocation()
                 val description = editMessage.text.toString().trim()
 
-                if (writerName.isNotEmpty() && userId.isNotEmpty() && locationText.isNotEmpty() && description.isNotEmpty()) {
+                if (writerName.isNotEmpty() && userId.isNotEmpty()
+                    && locationText.isNotEmpty() && description.isNotEmpty()
+                ) {
                     submitComplaintToServer(
                         writerName = writerName,
                         userId = userId,
@@ -221,8 +236,6 @@ class CreateComplaintActivity : AppCompatActivity() {
             }
         }
     }
-
-
 
     private fun Bitmap.toBase64(): String {
         val outputStream = ByteArrayOutputStream()
@@ -237,7 +250,6 @@ class CreateComplaintActivity : AppCompatActivity() {
                 finish()
                 true
             }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
