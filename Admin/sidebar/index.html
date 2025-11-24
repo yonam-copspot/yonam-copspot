@@ -362,7 +362,10 @@
           <select id="locationFilter" class="filter-select">
             <option value="">전체</option>
             <option value="산학협동관">산학협동관</option>
-            <option value="기계동">기계동</option>
+            <option value="인화관">인화관</option>
+            <option value="미래관">미래관</option>
+            <option value="본관">본관</option>
+            <option value="기타">기타</option>
           </select>
         </div>
         <p id="statusMessage" class="status-message"></p>
@@ -379,6 +382,8 @@
         window.location.origin && window.location.origin.startsWith("http")
           ? window.location.origin
           : "http://localhost:3000";
+      const CATEGORY_NAMES = ["산학협동관", "인화관", "미래관", "본관"];
+      const DEFAULT_CATEGORY = "기타";
       let allComplaints = [];
       let currentFilter = "";
       let pendingMarkerPayload = null;
@@ -388,6 +393,15 @@
       let focusedComplaintId = null;
       let shouldScrollToFocus = false;
       let lastMarkerSignature = "";
+
+      function resolveLocationCategory(locationName) {
+        const name = (locationName || "").trim();
+        if (!name) return DEFAULT_CATEGORY;
+        const matched = CATEGORY_NAMES.find((candidate) =>
+          name.includes(candidate)
+        );
+        return matched || DEFAULT_CATEGORY;
+      }
 
       function buildMarkerPayload(rows = []) {
         return rows
@@ -711,7 +725,10 @@
 
       function applyFilter() {
         const filtered = currentFilter
-          ? allComplaints.filter((item) => item.location_name === currentFilter)
+          ? allComplaints.filter(
+              (item) =>
+                resolveLocationCategory(item.location_name) === currentFilter
+            )
           : allComplaints;
         if (!filtered.length && allComplaints.length) {
           listEl.innerHTML = "";
