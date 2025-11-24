@@ -1,11 +1,7 @@
 (function () {
     const SDK_BASE_URL = 'https://dapi.kakao.com/v2/maps/sdk.js';
     const SCRIPT_ID = 'kakao-map-sdk';
-    const DEFAULT_COORD = { lat: 35.1649206, lng: 128.0993567 };
-
     let kakaoScriptPromise = null;
-    let mapInstance = null;
-    let markerInstance = null;
 
     const ensureScript = () => {
         if (!window.KAKAO_MAP_APP_KEY || window.KAKAO_MAP_APP_KEY === 'YOUR_APP_KEY_HERE') {
@@ -34,20 +30,6 @@
         return kakaoScriptPromise;
     };
 
-    const placeMarker = (lat, lng) => {
-        if (!mapInstance || !window.kakao || !window.kakao.maps) {
-            return;
-        }
-
-        const position = new window.kakao.maps.LatLng(lat, lng);
-        if (!markerInstance) {
-            markerInstance = new window.kakao.maps.Marker({ map: mapInstance });
-        }
-
-        markerInstance.setPosition(position);
-        mapInstance.setCenter(position);
-    };
-
     const initMap = () => {
         const mapContainer = document.getElementById('map');
         if (!mapContainer) {
@@ -55,16 +37,16 @@
             return;
         }
 
-        const centerPosition = new window.kakao.maps.LatLng(DEFAULT_COORD.lat, DEFAULT_COORD.lng);
+        const centerPosition = new kakao.maps.LatLng(35.1649206, 128.0993567); // 서울 시청
         const mapOptions = {
             center: centerPosition,
-            level: 3,
+            level: 3
         };
 
-        mapInstance = new window.kakao.maps.Map(mapContainer, mapOptions);
-        placeMarker(DEFAULT_COORD.lat, DEFAULT_COORD.lng);
+        const map = new kakao.maps.Map(mapContainer, mapOptions);
+        new kakao.maps.Marker({ position: centerPosition, map });
 
-        return mapInstance;
+        return map;
     };
 
     const loadKakaoMap = () => {
