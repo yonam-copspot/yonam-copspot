@@ -7,12 +7,24 @@
   let pendingMarkers = null;
   let overlays = [];
   let activeOverlay = null;
+  let markerLookup = new Map();
   let overlayStylesInjected = false;
   const markerSelectCallbackName = "handleMapMarkerSelect";
   const markerClearCallbackName = "handleMapMarkerClear";
   const USER_VIEW_HOLD_MS = 10000;
   let userViewHoldUntil = 0;
   let suppressNextZoomHold = false;
+  const DEFAULT_MARKER_ICON = {
+    src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png",
+    size: { width: 24, height: 35 },
+  };
+  const FOCUSED_MARKER_ICON = {
+    src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/sign-info-64.png",
+    size: { width: 44, height: 48 },
+  };
+  let defaultMarkerImage = null;
+  let focusedMarkerImage = null;
+  let activeMarkerId = null;
 
   const ensureScript = () => {
     if (
@@ -142,6 +154,55 @@
     overlayStylesInjected = true;
   };
 
+  const createMarkerImage = (icon) => {
+    const { width, height } = icon.size;
+    return new kakao.maps.MarkerImage(
+      icon.src,
+      new kakao.maps.Size(width, height),
+      {
+        offset: new kakao.maps.Point(width / 2, height),
+      }
+    );
+  };
+
+  const ensureMarkerImages = () => {
+    if (!window.kakao || !window.kakao.maps) return;
+    if (!defaultMarkerImage) {
+      defaultMarkerImage = createMarkerImage(DEFAULT_MARKER_ICON);
+    }
+    if (!focusedMarkerImage) {
+      focusedMarkerImage = createMarkerImage(FOCUSED_MARKER_ICON);
+    }
+  };
+
+  const setMarkerImage = (lookupKey, image) => {
+    if (!Number.isFinite(lookupKey)) return false;
+    const entry = markerLookup.get(lookupKey);
+    if (!entry || !entry.marker || !image) return false;
+    entry.marker.setImage(image);
+    return true;
+  };
+
+  const highlightMarker = (lookupKey) => {
+    ensureMarkerImages();
+    if (activeMarkerId === lookupKey) return;
+
+    if (Number.isFinite(activeMarkerId)) {
+      setMarkerImage(activeMarkerId, defaultMarkerImage);
+    }
+
+    if (!Number.isFinite(lookupKey)) {
+      activeMarkerId = null;
+      return;
+    }
+
+    if (setMarkerImage(lookupKey, focusedMarkerImage)) {
+      activeMarkerId = lookupKey;
+    } else {
+      activeMarkerId = null;
+    }
+  };
+
   const notifyMarkerClear = (payload) => {
     try {
       if (!window.parent || window.parent === window) return;
@@ -161,6 +222,7 @@
     overlay.setMap(null);
     if (activeOverlay === overlay) {
       activeOverlay = null;
+      highlightMarker(null);
       if (!suppressNotify) {
         notifyMarkerClear(payload);
       }
@@ -261,7 +323,7 @@
     const overlay = new kakao.maps.CustomOverlay({
       content: container,
       position,
-      yAnchor: 1.1,
+      yAnchor: 1.4,
       xAnchor: 0.5,
       clickable: true,
     });
@@ -289,6 +351,9 @@
       });
       overlays = [];
     }
+
+    markerLookup.clear();
+    activeMarkerId = null;
   };
 
   const renderMarkers = (locations = []) => {
@@ -298,6 +363,7 @@
     }
 
     clearMarkers();
+    ensureMarkerImages();
 
     if (!Array.isArray(locations) || !locations.length) {
       if (!isUserViewHeld()) {
@@ -311,10 +377,6 @@
     }
 
     const bounds = new kakao.maps.LatLngBounds();
-    const imageSrc =
-      "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png";
-    const imageSize = new kakao.maps.Size(24, 35);
-    const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
 
     locations.forEach((item) => {
       const latNum = Number(item?.latitude);
@@ -326,12 +388,21 @@
         map: mapInstance,
         position,
         title: item?.title || "민원 위치",
-        image: markerImage,
+        image: defaultMarkerImage,
       });
       markers.push(marker);
 
       const overlay = createOverlay(item, position);
       overlays.push(overlay);
+      const lookupKey = Number(item?.id);
+      if (Number.isFinite(lookupKey)) {
+        markerLookup.set(lookupKey, {
+          overlay,
+          position,
+          payload: item,
+          marker,
+        });
+      }
 
       kakao.maps.event.addListener(marker, "click", () => {
         hideActiveOverlay({ suppressNotify: true });
@@ -340,6 +411,7 @@
         if (typeof mapInstance.panTo === "function") {
           mapInstance.panTo(position);
         }
+        highlightMarker(lookupKey);
         notifyMarkerSelect(item);
       });
       bounds.extend(position);
@@ -395,4 +467,32 @@
 
   window.loadKakaoMap = loadKakaoMap;
   window.renderComplaintMarkers = renderMarkers;
+  window.focusComplaintMarker = (complaintId) => {
+    if (!mapInstance) return;
+    const lookupKey = Number(complaintId);
+    if (!Number.isFinite(lookupKey)) return;
+    const target = markerLookup.get(lookupKey);
+    if (!target) return;
+
+    if (activeOverlay?.__markerPayload?.id === lookupKey) {
+      hideActiveOverlay();
+      return;
+    }
+    const { overlay, position } = target;
+
+    hideActiveOverlay({ suppressNotify: true });
+    overlay.setMap(mapInstance);
+    activeOverlay = overlay;
+    if (position && typeof mapInstance.panTo === "function") {
+      mapInstance.panTo(position);
+    }
+    highlightMarker(lookupKey);
+    holdUserView();
+  };
+
+  window.clearComplaintMarkerFocus = () => {
+    if (!mapInstance) return;
+    hideActiveOverlay();
+    highlightMarker(null);
+  };
 })();
