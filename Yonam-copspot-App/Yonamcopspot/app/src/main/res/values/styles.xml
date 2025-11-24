@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="LocationChipStyle" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/location_chip_bg</item>
+        <item name="chipStrokeColor">@color/location_chip_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">12dp</item>
+
+        <item name="chipStartPadding">12dp</item>
+        <item name="chipEndPadding">12dp</item>
+
+        <item name="android:textColor">@color/location_chip_text</item>
+        <item name="android:textSize">14sp</item>
+
+        <item name="checkedIconVisible">false</item>
+    </style>
+
+
+</resources>
