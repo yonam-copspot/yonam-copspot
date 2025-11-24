@@ -28,7 +28,7 @@ class ComplaintDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_complaint_detail)
+        setContentView(R.layout.activity_complaint_status)
 
         supportActionBar?.title = "민원 상세"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)

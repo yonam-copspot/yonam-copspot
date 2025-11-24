@@ -32,6 +32,6 @@ data class CompletionDto(
     @SerializedName(value = "address", alternate = ["locationName"])
     val locationName: String?,
 
-    @SerializedName("description")
+    @SerializedName("detail")
     val description: String?
 )
