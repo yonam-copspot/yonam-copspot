@@ -138,6 +138,7 @@
         padding: 1rem;
         background: #fff;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
 
       .comment-section {
@@ -175,6 +176,12 @@
         border-radius: 8px;
         margin-bottom: 0.75rem;
         background: #f5f5f5;
+        cursor: pointer;
+      }
+
+      .complaint-card.focused {
+        border-color: #4d64f3;
+        box-shadow: 0 8px 18px rgba(77, 100, 243, 0.25);
       }
 
       .complaint-name {
@@ -356,7 +363,10 @@
           <select id="locationFilter" class="filter-select">
             <option value="">전체</option>
             <option value="산학협동관">산학협동관</option>
-            <option value="기계동">기계동</option>
+            <option value="인화관">인화관</option>
+            <option value="미래관">미래관</option>
+            <option value="본관">본관</option>
+            <option value="기타">기타</option>
           </select>
         </div>
         <p id="statusMessage" class="status-message"></p>
@@ -368,12 +378,155 @@
       const listEl = document.getElementById("complaintList");
       const filterSelect = document.getElementById("locationFilter");
       const statusEl = document.getElementById("statusMessage");
+      const previewFrame = document.querySelector(".preview-frame");
       const API_BASE =
         window.location.origin && window.location.origin.startsWith("http")
           ? window.location.origin
           : "http://localhost:3000";
+      const CATEGORY_NAMES = ["산학협동관", "인화관", "미래관", "본관"];
+      const DEFAULT_CATEGORY = "기타";
       let allComplaints = [];
       let currentFilter = "";
+      let pendingMarkerPayload = null;
+      const MARKER_HOLD_MS = 12000;
+      let refreshHoldUntil = 0;
+      let refreshHoldMessage = "";
+      let focusedComplaintId = null;
+      let shouldScrollToFocus = false;
+      let lastMarkerSignature = "";
+
+      function withPreviewFrame(callback) {
+        if (!previewFrame || typeof callback !== "function") return;
+        const frameWindow = previewFrame.contentWindow;
+        if (!frameWindow) return;
+        callback(frameWindow);
+      }
+
+      function focusMarkerOnMap(id) {
+        if (!id) return;
+        withPreviewFrame((frameWindow) => {
+          if (typeof frameWindow.focusComplaintMarker === "function") {
+            frameWindow.focusComplaintMarker(id);
+          }
+        });
+      }
+
+      function clearMarkerFocusOnMap() {
+        withPreviewFrame((frameWindow) => {
+          if (typeof frameWindow.clearComplaintMarkerFocus === "function") {
+            frameWindow.clearComplaintMarkerFocus();
+          }
+        });
+      }
+
+      function resolveLocationCategory(locationName) {
+        const name = (locationName || "").trim();
+        if (!name) return DEFAULT_CATEGORY;
+        const matched = CATEGORY_NAMES.find((candidate) =>
+          name.includes(candidate)
+        );
+        return matched || DEFAULT_CATEGORY;
+      }
+
+      function buildMarkerPayload(rows = []) {
+        return rows
+          .map((item) => {
+            const lat = Number(item.latitude);
+            const lng = Number(item.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return {
+              id: item.id,
+              latitude: lat,
+              longitude: lng,
+              title: item.location_name || item.author_name || "민원 위치",
+              locationName: item.location_name || "장소 정보 없음",
+              authorName: item.author_name || "미상",
+              description: item.description || "",
+              createdAt: item.created_at || null,
+            };
+          })
+          .filter(Boolean);
+      }
+
+      function syncMapMarkers(rows) {
+        const payload = buildMarkerPayload(rows);
+        const signature = JSON.stringify(payload);
+        if (signature === lastMarkerSignature) {
+          return;
+        }
+        lastMarkerSignature = signature;
+        sendMarkersToMap(payload);
+      }
+
+      function pauseAutoRefresh(
+        message = "마커 상세를 보는 동안 새로고침이 잠시 멈춥니다.",
+        duration = MARKER_HOLD_MS
+      ) {
+        refreshHoldUntil = Date.now() + duration;
+        refreshHoldMessage = message;
+      }
+
+      function shouldDeferAutoRefresh() {
+        if (isTypingComment()) {
+          setFeedback("입력 중에는 자동 새로고침이 잠시 멈춥니다.");
+          return true;
+        }
+        if (Date.now() < refreshHoldUntil) {
+          setFeedback(refreshHoldMessage);
+          return true;
+        }
+        return false;
+      }
+
+      function clearCardFocus() {
+        listEl
+          .querySelectorAll(".complaint-card.focused")
+          .forEach((card) => card.classList.remove("focused"));
+      }
+
+      function applyFocusedCardHighlight() {
+        clearCardFocus();
+        if (!focusedComplaintId) return;
+        const selector = `[data-complaint-id="${focusedComplaintId}"]`;
+        const target = listEl.querySelector(selector);
+        if (!target) return;
+        target.classList.add("focused");
+        if (shouldScrollToFocus) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          shouldScrollToFocus = false;
+        }
+      }
+
+      function focusComplaintById(id, { scroll = false } = {}) {
+        if (!id) return;
+        focusedComplaintId = Number(id);
+        shouldScrollToFocus = scroll;
+        applyFocusedCardHighlight();
+      }
+
+      function sendMarkersToMap(payload) {
+        if (!previewFrame) return;
+        const frameWindow = previewFrame.contentWindow;
+        if (
+          frameWindow &&
+          typeof frameWindow.renderComplaintMarkers === "function"
+        ) {
+          frameWindow.renderComplaintMarkers(payload);
+          pendingMarkerPayload = null;
+          return;
+        }
+        pendingMarkerPayload = payload;
+      }
+
+      if (previewFrame) {
+        previewFrame.addEventListener("load", () => {
+          if (pendingMarkerPayload) {
+            sendMarkersToMap(pendingMarkerPayload);
+          } else if (allComplaints.length) {
+            sendMarkersToMap(buildMarkerPayload(allComplaints));
+          }
+        });
+      }
 
       function isTypingComment() {
         const inputs = document.querySelectorAll(".comment-input");
@@ -393,6 +546,8 @@
         if (!rows.length) {
           listEl.innerHTML = "";
           setFeedback("표시할 신고가 없습니다.");
+          syncMapMarkers([]);
+          focusedComplaintId = null;
           return;
         }
 
@@ -400,6 +555,7 @@
         rows.forEach((item) => {
           const card = document.createElement("article");
           card.className = "complaint-card";
+          card.dataset.complaintId = item.id;
           const created = item.created_at
             ? new Date(item.created_at).toLocaleString("ko-KR")
             : "시간 정보 없음";
@@ -412,7 +568,7 @@
             }</div>
             ${
               photoSrc
-                ? `<img class="complaint-photo" src="${photoSrc}" alt="complaint photo" />`
+                ? `<img class="complaint-photo" data-photo-id="${item.id}" src="${photoSrc}" alt="complaint photo" />`
                 : ""
             }
             <p class="complaint-line">${formatCoord(
@@ -441,12 +597,34 @@
           `;
           listEl.appendChild(card);
         });
+        syncMapMarkers(rows);
+        applyFocusedCardHighlight();
       }
 
       listEl.addEventListener("click", async (event) => {
         const completeBtn = event.target.closest(".btn-complete");
         if (completeBtn) {
           await handleDelete(completeBtn);
+          return;
+        }
+
+        const photo = event.target.closest(".complaint-photo");
+        if (photo) {
+          const card = photo.closest(".complaint-card");
+          const id = Number(card?.dataset.complaintId);
+          if (id) {
+            if (focusedComplaintId === id) {
+              focusedComplaintId = null;
+              clearCardFocus();
+              clearMarkerFocusOnMap();
+            } else {
+              pauseAutoRefresh(
+                "지도 마커를 표시하는 동안 새로고침이 잠시 멈춥니다."
+              );
+              focusComplaintById(id, { scroll: true });
+              focusMarkerOnMap(id);
+            }
+          }
           return;
         }
 
@@ -568,8 +746,7 @@
 
       async function loadComplaints(options = {}) {
         const { allowDefer = false } = options;
-        if (allowDefer && isTypingComment()) {
-          setFeedback("입력 중에는 자동 새로고침이 잠시 멈춥니다.");
+        if (allowDefer && shouldDeferAutoRefresh()) {
           return;
         }
         if (isLoading) return;
@@ -593,7 +770,10 @@
 
       function applyFilter() {
         const filtered = currentFilter
-          ? allComplaints.filter((item) => item.location_name === currentFilter)
+          ? allComplaints.filter(
+              (item) =>
+                resolveLocationCategory(item.location_name) === currentFilter
+            )
           : allComplaints;
         if (!filtered.length && allComplaints.length) {
           listEl.innerHTML = "";
@@ -607,6 +787,17 @@
         currentFilter = filterSelect.value;
         applyFilter();
       });
+
+      window.handleMapMarkerSelect = (payload) => {
+        if (!payload || !payload.id) return;
+        pauseAutoRefresh();
+        focusComplaintById(payload.id, { scroll: true });
+      };
+
+      window.handleMapMarkerClear = () => {
+        focusedComplaintId = null;
+        clearCardFocus();
+      };
 
       loadComplaints();
       setInterval(() => loadComplaints({ allowDefer: true }), 5000);
