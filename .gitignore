@@ -1,6 +1,27 @@
+# local / secret
+local.properties
+*.keystore
+*.jks
 api.txt
+config.js
 
 # Local environment secrets
 Admin/sidebar/.env
 
-config.js
+# Gradle / Android build outputs
+.gradle/
+**/build/
+**/out/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+
+# Kotlin/Java compiled
+*.class
+
+# OS junk
+.DS_Store
+Thumbs.db
