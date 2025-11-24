@@ -20,7 +20,7 @@
   };
   const FOCUSED_MARKER_ICON = {
     src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/sign-info-64.png",
-    size: { width: 44, height: 48 },
+    size: { width: 35, height: 35 },
   };
   let defaultMarkerImage = null;
   let focusedMarkerImage = null;
@@ -323,7 +323,7 @@
     const overlay = new kakao.maps.CustomOverlay({
       content: container,
       position,
-      yAnchor: 1.4,
+      yAnchor: 1.3,
       xAnchor: 0.5,
       clickable: true,
     });
