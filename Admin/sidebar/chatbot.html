@@ -560,8 +560,8 @@
 
       .bubble.image-msg img {
         display: block;
-        max-width: 260px;
-        max-height: 260px;
+        max-width: 200px;
+        max-height: 200px;
         border-radius: 18px;
         box-shadow: 0 10px 20px rgba(148, 163, 184, 0.7);
         background: #ffffff;
@@ -1120,49 +1120,198 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
+      const CHAT_PREFILL_KEY = "school-handover-chat-prefill";
       const LMSTUDIO_PROXY_URL = "/api/chatbot-proxy";
       const LMSTUDIO_MODEL_NAME = "qwen2.5-vl-7b-instruct";
       const STORAGE_KEY = "school-handover-chat-sessions-v1";
 
+      // ===== 인수인계/학교 정보 요약(압축 버전) =====
       const HANDOVER_DOC_SUMMARY = `
-- 민원 우선순위: 안전사고 우려 > 시설 파손 > 기타 불편
-- 학생/학부모 응대 톤: 먼저 공감, 이후 해결 절차 안내
-- 기본 처리 프로세스:
-  1) 위치·상황·위험도 확인
-  2) 관련 부서(행정실, 시설 담당 등) 전달
-  3) 처리 예상 기간 안내
-  4) 처리 후 결과 회신
-- 절대 하지 말 것:
-  - 특정 교사·학생 실명 언급 비난
-  - 학교 규정을 임의로 변경 약속
+[민원 인수인계 핵심 요약]
+
+1) 우선순위
+- 1순위: 안전·생명(폭력, 자해 우려, 화재·감전·낙상 등)
+- 2순위: 시설·설비(전기, 배관, 냉난방, 기숙사·강의실 고장 등)
+- 3순위: 기타 불편·건의(소음, 환경, 서비스 등)
+
+2) 공통 처리 흐름
+- (1) 위치·상황·위험도 확인
+- (2) 담당 부서 확인 후 전달
+- (3) 처리 계획 및 예상 일정 안내
+- (4) 처리 후 결과 공유, 재발 방지 여부 점검
+
+3) 응대 톤
+- 먼저 공감 → 사실관계 재정리 → 규정·절차에 따른 대응 방안 제시
+- "반드시 ~해 드리겠습니다" 대신
+  "관련 부서와 협의하여 가능한 조치를 검토하겠습니다." 수준으로 표현
+
+4) 공통 주의사항
+- 특정 인물 실명 비난·추측 금지
+- 학사·등록금·징계 등 규정 변경을 약속하지 않음
+- 민원 기록은 정해진 시스템에만 입력, 개인이 임의로 삭제·수정하지 않음
 `;
 
+      const SCHOOL_INFO_SUMMARY = `
+[학교 기본 정보 요약]
+
+- 학교명: 연암공과대학교 (학교법인 LG연암학원)
+- 지역 : 경상남도 진주시 진주대로629번길 35
+- 성격: 공학·실무·취업 지향 공업계 전문대학
+- 전공: 전기전자, 스마트전기전자, 기계·스마트기계, 스마트소프트웨어 등
+- 특징: 산학협력·현장실습 중심, 전 학과 AI·DX 역량 강화 지향
+`;
+
+      const PHONE_RULES_SUMMARY = `
+[전화 연결 원칙 요약]
+
+1) 분야별 1차 창구
+- 학사·수업·성적 → 교무처
+- 입학·장학·학생생활 → 입학학생처
+- 취업·현장실습·창업 → 취창업지원처
+- 시설·안전·환경·자산 → 사무처
+- 기숙사·보건 → 학생생활관
+- 도서·학습지원·원격수업 → 도서관·교수학습지원센터/원격교육지원센터
+- 전산·포털·시스템·AI·DX → AI·DX센터·전산정보팀
+- 개별 학과 관련 문의 → 해당 학과 사무실
+
+2) 말하는 방식
+- 담당 부서가 애매하면
+  "정확한 담당 부서를 단정하긴 어렵지만, ○○부서에서 1차 검토 후
+   필요한 경우 다른 부서로 연계할 가능성이 높습니다." 정도로 표현
+`;
+
+      // ===== 내선 번호 목록도 줄인 버전 (실제 번호는 유지) =====
+      const PHONE_DIRECTORY_TEXT = `
+[연암공과대학교 주요 교내 전화·내선(축약)]
+
+- 산학협력/혁신/LINC3.0
+  · 산학협력단: 2102
+
+- AI·DX센터 / 전산정보팀
+  · AI·DX센터: 2194
+  · 전산정보팀 시스템: 2141
+  · 전산정보팀 웹서비스·홈페이지: 2143
+
+- 교수학습지원센터·원격교육지원센터
+  · 센터장: 2076
+  · 총괄: 2012
+  · 교수학습지원 업무: 2171, 2172
+
+- 도서관
+  · 관장: 2067
+  · 도서·전자자료·대출·반납: 2123
+
+- 학생생활관·보건
+  · 관장: 2067
+  · 생활관 업무: 2032
+  · 보건 업무: 2033
+
+- 기획처
+  · 처장: 2195
+  · 전략기획·정도경영: 2020
+  · 예산·평가·발전기금: 2023
+  · 홍보·공시: 2022
+
+- 교무처
+  · 처장: 2045
+  · 산하 부서 총괄: 2012
+  · 학사·교원: 2013
+  · 학적·수업: 2014
+
+- 입학학생처
+  · 산하 부서 총괄: 2180
+
+- 사무처
+  · 산하 부서 총괄: 2025
+
+- 취창업지원처
+  · 산하 부서 총괄: 2084
+
+- 학과 사무실
+  · 전기전자공학과: 사무실 2040
+  · 스마트전기전자공학과: 사무실 2040
+  · 기계·스마트기계공학과: 사무실 2060
+  · 스마트소프트웨어학과: 사무실 2190
+
+- 학생자치·기타
+  · 총학생회실: 2130
+  · 총동창회사무국: 2158
+  · (주)아워홈: 2139
+`;
+
+      // ===== 시스템 프롬프트 (전체 요약) =====
       const SYSTEM_PROMPT =
         "[인수인계서 요약]\n" +
         HANDOVER_DOC_SUMMARY +
+        "\n\n[학교 정보 요약]\n" +
+        SCHOOL_INFO_SUMMARY +
+        "\n\n[부서·내선 역할 요약]\n" +
+        PHONE_RULES_SUMMARY +
+        "\n\n[전화번호·내선 안내표]\n" +
+        PHONE_DIRECTORY_TEXT +
         `
 
-너는 "학교 민원 처리 담당자"를 도와주는 내부용 챗봇이야.
-주로 학교 관리자(행정실, 시설 담당자)가 너에게 업무 관련 질문을 한다.
-사용자는 학교 민원과 직접 관련이 없는 사진을 첨부하고, 그 사진에 대한 상세한 설명만 요청할 수도 있다.
+너는 "연암공과대학교 민원·문의 담당자"를 돕는 내부용 챗봇이다.
+주 사용자는 연암공대 행정직원·조교·학과 사무실 인원·학생자치 담당자 등이며,
+학생·학부모·외부 민원에 응대할 때 참고할 수 있는 가이드 답변을 만들어 주는 역할이다.
+사용자는 학교 민원과 직접 관련이 없는 사진을 첨부하고, 그 사진에 대한 설명만 요청할 수도 있다.
 
-역할:
-1) 텍스트만 있을 때:
-   - 위 인수인계서 요약과 학교 규정을 기준으로, 민원 처리 관점에서 단계별로 정리해서 답변해.
-2) 이미지가 함께 올 때:
-   - 먼저 이미지에 보이는 장면, 사람/사물, 배경, 상태(깨짐, 훼손, 혼잡 등)를 객관적으로 자세히 묘사해.
-   - 그 다음에:
-     - 학교/민원과 관련 있어 보이면, 인수인계 기준에 따라 어떻게 해석·처리하면 좋을지 설명해.
-     - 학교/민원과 직접 관련이 없어 보이면, "이 이미지는 학교 민원과 직접적인 연관은 없어 보입니다."라고 한 번은 짚고,
-       일반적인 관점에서의 해석이나 설명(구조, 상황, 위험요소, 장단점 등)을 해 줘.
+[1. 텍스트만 있을 때]
 
-규칙:
-- 모르는 내용은 아는 척 하지 말고, "인수인계서에 명시되지 않아 확답은 어렵습니다."라고 말해.
-- 실제 결재/예산/공문과 관련된 부분은 "최종 결정은 담당자 재량"이라고 한 번은 언급해.
-- 학생/학부모에게 보여줄 답변 예시를 요청하면, 정중한 존댓말 예시 문장을 2~3개 제시해.
-- 모든 답변은 반드시 자연스러운 한국어 존댓말로 작성해.
-- 민감한 개인정보(실명, 주소, 얼굴 등)는 추측하지 말고, 식별 가능한 인물은 "학생", "교직원", "사람" 정도로만 표현해.
-- 조금 시간이 걸려도 괜찮으니(최대 20초) 정확한정보(정답률 70%이상)전달을 목표로 해줘.
+- 위 요약을 기준으로:
+  · 민원 유형을 간단히 분류하고
+  · 어느 부서가 1차 접수·검토 부서인지 우선 제시한다.
+- "연암공대가 어떤 학교냐"는 질문에는
+  · 한 줄 요약 + 설립 주체·위치·학과 구성·교육 특징을 짧게 항목별로 설명한다.
+- 민원·문의일 경우
+  · ① 민원 내용을 한 줄로 요약
+  · ② 어느 부서(또는 학과 사무실)에
+  · ③ 어떤 순서로 문의하면 되는지
+    → 1단계, 2단계, 3단계 식으로 단계별 안내를 한다.
+- 가능하면
+  · (1) 내부 인수인계용 요약
+  · (2) 학생에게 안내할 때 쓸 수 있는 정중한 문장 예시(존댓말 2~3문장)
+  를 구분해서 적는다.
+
+[2. 이미지가 있을 때]
+
+- 먼저 이미지에 보이는 장면·시설·사물·상태를
+  감정 표현 없이 객관적·구체적으로 묘사한다.
+- 캠퍼스 시설·안전·환경과 관련 있어 보이면,
+  · 어떤 위험 요소가 있고
+  · 어느 부서에
+  · 어떤 우선순위로
+  · 어떤 내용으로 전달해야 하는지
+  인수인계 관점에서 정리한다.
+- 학교 민원과 직접 관련 없어 보이면,
+  "이 이미지는 연암공과대학교 민원과 직접적인 연관은 없어 보입니다."
+  라고 한 번 짚은 뒤, 일반적인 설명·분석만 제공한다.
+
+[3. 전화번호 안내 규칙]
+
+- 사용할 수 있는 전화·내선 번호는 [전화번호·내선 안내표]에 적힌 번호로만 제한한다.
+- 표에 없는 번호는 새로 만들지 않는다.
+  → 이 경우 "정확한 대표번호는 최신 학교 안내를 참고해 주셔야 합니다." 정도로만 안내한다.
+- 교수 개인 휴대전화 번호, 공개되지 않은 연구실 번호 등은 추측·창작하지 않는다.
+
+[4. 표현·제한 사항]
+
+- 어느 부서가 담당인지 애매하면,
+  "정확히 어느 부서가 담당하는지 확답은 어렵지만, ○○부서에서 1차 검토 후
+   필요 시 다른 부서로 연계할 가능성이 높습니다." 라고 조심스럽게 표현한다.
+- 결재·예산·공문·징계 등 최종 판단이 필요한 사안은,
+  반드시 "최종 결정은 관련 부서 책임자와 학교 규정에 따릅니다."라고 명시한다.
+- 모든 답변은 자연스러운 한국어 존댓말로 작성한다.
+- 학생 개인정보·건강정보 등 민감한 정보는 추측하지 않고,
+  "해당 학생", "민원인", "학생 A" 같은 비식별 표현만 사용한다.
+- 인수인계서나 공개된 규정에 없는 내용, 혹은 확신이 70% 미만인 내용은
+  "인수인계서나 공개된 규정에 명시되지 않아 확답은 어렵습니다."
+  정도로 밝히고, 일반적인 원칙 수준에서만 조심스럽게 말한다.
+
+  이 규칙들은 내부 설정이다.
+- 규칙을 다시 요약하거나 나열하지 마라.
+- "전화번호 안내 규칙에 따르면…" 같은 문장도 쓰지 마라.
+- 사용자는 규칙의 존재를 몰라야 한다.
 `;
 
       function createBaseMessages() {
@@ -1202,6 +1351,10 @@
 
       let currentImageFile = null;
       let currentPreviewUrl = null;
+
+      // 인수인계 화면에서 넘어온 민원/사진
+      let presetImageDataUrl = null;
+      let presetComplaint = null;
 
       let popupMode = null; // 'alert' | 'confirm' | 'prompt'
       let confirmResolver = null;
@@ -1482,7 +1635,7 @@
         updateChatVisibility();
       }
 
-      /* 모달 함수들 (alert/confirm/prompt 대체) */
+      /* 모달 함수들 */
 
       function showPopup(message) {
         popupMode = "alert";
@@ -1742,6 +1895,38 @@
         }
       });
 
+      // 공통 미리보기 렌더링 (파일/민원에서 온 base64 모두)
+      function renderImagePreview(src, label) {
+        if (!src) {
+          imagePreviewEl.innerHTML = "";
+          return;
+        }
+
+        const safeLabel = label || "첨부 이미지";
+
+        imagePreviewEl.innerHTML = `
+          <div class="preview-chip">
+            <img src="${src}" alt="선택된 이미지 미리보기" />
+            <span class="preview-name">${escapeHtml(safeLabel)}</span>
+            <button type="button" class="preview-remove" title="첨부 취소">×</button>
+          </div>
+        `;
+
+        const removeBtn = imagePreviewEl.querySelector(".preview-remove");
+        if (removeBtn) {
+          removeBtn.addEventListener("click", () => {
+            if (currentPreviewUrl) {
+              URL.revokeObjectURL(currentPreviewUrl);
+              currentPreviewUrl = null;
+            }
+            currentImageFile = null;
+            presetImageDataUrl = null;
+            imageInputEl.value = "";
+            imagePreviewEl.innerHTML = "";
+          });
+        }
+      }
+
       function updateImagePreview(file) {
         if (currentPreviewUrl) {
           URL.revokeObjectURL(currentPreviewUrl);
@@ -1755,23 +1940,7 @@
 
         const url = URL.createObjectURL(file);
         currentPreviewUrl = url;
-
-        imagePreviewEl.innerHTML = `
-          <div class="preview-chip">
-            <img src="${url}" alt="선택된 이미지 미리보기" />
-            <span class="preview-name">${file.name}</span>
-            <button type="button" class="preview-remove" title="첨부 취소">×</button>
-          </div>
-        `;
-
-        const removeBtn = imagePreviewEl.querySelector(".preview-remove");
-        if (removeBtn) {
-          removeBtn.addEventListener("click", () => {
-            currentImageFile = null;
-            imageInputEl.value = "";
-            updateImagePreview(null);
-          });
-        }
+        renderImagePreview(url, file.name);
       }
 
       function setImageFile(file) {
@@ -1853,9 +2022,9 @@
 
       function fileToCompressedDataURL(
         file,
-        maxWidth = 640,
-        maxHeight = 640,
-        quality = 0.55
+        maxWidth = 384,
+        maxHeight = 384,
+        quality = 0.4
       ) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -1885,11 +2054,48 @@
         });
       }
 
+      // ===== LM Studio로 보낼 messages: 마지막 assistant + 마지막 user만 유지 =====
+      function buildMessagesForApi() {
+        const base = [{ role: "system", content: SYSTEM_PROMPT }];
+
+        const nonSystem = messages.filter((m) => m.role !== "system");
+        let lastUserIndex = -1;
+        let lastAssistantIndex = -1;
+
+        for (let i = nonSystem.length - 1; i >= 0; i--) {
+          const m = nonSystem[i];
+          if (m.role === "user" && lastUserIndex === -1) {
+            lastUserIndex = i;
+          } else if (m.role === "assistant" && lastAssistantIndex === -1) {
+            lastAssistantIndex = i;
+          }
+          if (lastUserIndex !== -1 && lastAssistantIndex !== -1) break;
+        }
+
+        const selected = [];
+        if (lastAssistantIndex !== -1) {
+          selected.push({
+            idx: lastAssistantIndex,
+            msg: nonSystem[lastAssistantIndex],
+          });
+        }
+        if (lastUserIndex !== -1) {
+          selected.push({ idx: lastUserIndex, msg: nonSystem[lastUserIndex] });
+        }
+
+        selected.sort((a, b) => a.idx - b.idx);
+
+        const result = [...base];
+        selected.forEach((item) => result.push(item.msg));
+        return result;
+      }
+
       async function callLmStudio() {
         const payload = {
           model: LMSTUDIO_MODEL_NAME,
-          messages,
-          temperature: 0.2,
+          messages: buildMessagesForApi(),
+          temperature: 0,
+          top_p: 0.2,
         };
 
         if (window.__lmStudioLastResponse) {
@@ -1941,6 +2147,20 @@
         return reply;
       }
 
+      function extractTextFromReply(replyMsg) {
+        if (!replyMsg) return "";
+        if (typeof replyMsg.content === "string") {
+          return replyMsg.content;
+        }
+        if (Array.isArray(replyMsg.content)) {
+          return replyMsg.content
+            .filter((p) => p.type === "text" && p.text)
+            .map((p) => p.text)
+            .join("\n");
+        }
+        return "";
+      }
+
       function resetActiveSessionMessages(showGreeting = true) {
         const active = getActiveSession();
         if (!active) return;
@@ -1962,6 +2182,7 @@
         updateChatVisibility();
       }
 
+      // 폼 전송: 민원에서 넘어온 사진/텍스트도 포함해서 한 번에 전송
       formEl.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -1974,30 +2195,83 @@
         const text = inputEl.value.trim();
         const file = currentImageFile;
 
-        if (!text && !file) return;
+        // 텍스트도 없고, 파일도 없고, 인수인계에서 넘어온 이미지/민원도 없으면 전송 X
+        if (!text && !file && !presetImageDataUrl && !presetComplaint) return;
 
-        let dataUrl = null;
+        // LM Studio로 보낼 실제 이미지 data URL (파일이 있으면 파일 우선)
+        let imageDataUrlForSend = null;
         if (file) {
-          dataUrl = await fileToCompressedDataURL(file, 640, 640, 0.55);
+          imageDataUrlForSend = await fileToCompressedDataURL(
+            file,
+            640,
+            640,
+            0.55
+          );
+        } else if (presetImageDataUrl) {
+          imageDataUrlForSend = presetImageDataUrl;
         }
 
+        // 화면에 표시할 텍스트 (사용자가 입력한 것 + 이미지 첨부 여부)
         let displayText = text || "";
-        if (file) {
+        if (imageDataUrlForSend) {
           if (displayText) displayText += "\n";
           displayText += "[이미지 첨부됨]";
         }
-        appendMessage("user", displayText, dataUrl);
+        appendMessage("user", displayText, imageDataUrlForSend);
 
+        // LM에게 전달할 텍스트: 민원 정보까지 포함해서 확장
+        let combinedText = text || "";
+        if (presetComplaint) {
+          const c = presetComplaint;
+          const parts = [];
+          parts.push("다음은 내부 민원 시스템에서 불러온 민원 정보입니다.");
+          parts.push("");
+          if (c.id != null) parts.push(`- 민원 ID: ${c.id}`);
+          if (c.author_name) parts.push(`- 신고자: ${c.author_name}`);
+          if (c.user_id) parts.push(`- 사용자 ID: ${c.user_id}`);
+          if (c.location_name) parts.push(`- 위치: ${c.location_name}`);
+          if (
+            typeof c.latitude === "number" &&
+            typeof c.longitude === "number"
+          ) {
+            parts.push(`- 좌표: ${c.latitude}, ${c.longitude}`);
+          }
+          if (c.created_at) parts.push(`- 접수 시각: ${c.created_at}`);
+          if (c.description) {
+            parts.push("");
+            parts.push("[민원 내용]");
+            parts.push(c.description);
+          }
+          parts.push("");
+          parts.push(
+            "위 민원을 처리하는 기준, 담당 부서, 인수인계 시 주의사항을 정리해 주세요."
+          );
+
+          const prefix = parts.join("\n");
+
+          if (combinedText) {
+            combinedText =
+              prefix + "\n\n[추가 질문]\n" + combinedText.trimStart();
+          } else {
+            combinedText = prefix;
+          }
+
+          // 한 번 사용했으면 민원 텍스트는 소진 (이미 대화 맥락에 들어감)
+          presetComplaint = null;
+        }
+
+        // 입력값/프리뷰 초기화
         inputEl.value = "";
         autoResizeTextarea();
         currentImageFile = null;
+        presetImageDataUrl = null;
         imageInputEl.value = "";
         updateImagePreview(null);
 
         let userMessage;
-        if (file && dataUrl) {
+        if (imageDataUrlForSend) {
           const textPart =
-            text ||
+            combinedText ||
             "첨부된 사진이 학교 민원과 직접 관련이 없어도 괜찮습니다. 사진에 보이는 내용을 최대한 자세히 묘사해 주시고, 학교 민원 관점에서 참고할 만한 부분이 있다면 함께 설명해 주세요.";
           userMessage = {
             role: "user",
@@ -2006,7 +2280,7 @@
               {
                 type: "image_url",
                 image_url: {
-                  url: dataUrl,
+                  url: imageDataUrlForSend,
                 },
               },
             ],
@@ -2014,7 +2288,9 @@
         } else {
           userMessage = {
             role: "user",
-            content: text,
+            content:
+              combinedText ||
+              "이 민원에 대해 인수인계 기준으로 처리 절차와 주의사항을 정리해 주세요.",
           };
         }
 
@@ -2041,19 +2317,23 @@
 
         try {
           setLoading(true);
-          const replyMsg = await callLmStudio();
 
-          let replyText = "";
-          if (typeof replyMsg?.content === "string") {
-            replyText = replyMsg.content;
-          } else if (Array.isArray(replyMsg?.content)) {
-            replyText = replyMsg.content
-              .filter((p) => p.type === "text" && p.text)
-              .map((p) => p.text)
-              .join("\n");
-          } else {
+          let replyMsg = await callLmStudio();
+          let replyText = extractTextFromReply(replyMsg);
+
+          // 빈 응답이거나 너무 짧으면 1회 재시도
+          if (!replyText || replyText.trim().length < 3) {
+            console.warn(
+              "빈 응답 또는 너무 짧은 응답 감지, 한 번 더 재시도합니다.",
+              replyText
+            );
+            replyMsg = await callLmStudio();
+            replyText = extractTextFromReply(replyMsg);
+          }
+
+          if (!replyText || replyText.trim().length < 1) {
             replyText =
-              "LM Studio 응답 형식이 올바르지 않아 답변을 표시할 수 없습니다.";
+              "모델에서 유효한 답변을 받지 못했습니다.\n\n질문을 조금 더 구체적으로 적어 주시거나, 잠시 후 다시 시도해 주세요.";
           }
 
           replyText = replyText.trim();
@@ -2105,6 +2385,101 @@
         resetActiveSessionMessages(true);
       });
 
+      // 인수인계 화면(index.html)에서 넘어온 민원 정보 읽기
+      // 인수인계 화면(index.html)에서 넘어온 민원/프리필 정보 읽기
+      function loadComplaintFromStorage() {
+        try {
+          // 1) 새 방식: index.html → sessionStorage 에 넣어둔 프리필(payload)
+          let raw = sessionStorage.getItem(CHAT_PREFILL_KEY);
+          if (raw) {
+            sessionStorage.removeItem(CHAT_PREFILL_KEY);
+
+            const data = JSON.parse(raw);
+            if (!data || typeof data !== "object") return;
+
+            // 세션이 하나도 없으면 새 대화방 생성 (인사 메시지 포함)
+            let active = getActiveSession();
+            if (!active) {
+              createAndActivateNewSession();
+              active = getActiveSession();
+            }
+
+            // 이미지 프리뷰: 파일 없이 base64/데이터 URL만 있어도 미리보기 + 전송 가능
+            if (data.imageDataUrl) {
+              presetImageDataUrl = data.imageDataUrl;
+              renderImagePreview(presetImageDataUrl, "민원 사진");
+            }
+
+            // 텍스트 프리필: index.html에서 만들어 둔 문장을 그대로 입력창에 채워 넣기
+            if (data.text) {
+              inputEl.value = data.text;
+              autoResizeTextarea();
+            }
+
+            // 여기서는 "assistant" 메시지를 추가로 보내지 않습니다.
+            // → 사용자가 전송 버튼을 눌러야 처음 메시지가 나가도록 유지.
+            return;
+          }
+
+          // 2) 구 버전 호환: 예전 localStorage("handover-selected-complaint") 사용하던 경우
+          raw = localStorage.getItem("handover-selected-complaint");
+          if (!raw) return;
+
+          localStorage.removeItem("handover-selected-complaint");
+
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") return;
+
+          // 구 방식에서는 기존 로직 유지 (기존에 쓰던 경우 깨지지 않도록)
+          presetComplaint = data;
+
+          if (data.imageDataUrl) {
+            presetImageDataUrl = data.imageDataUrl;
+            renderImagePreview(presetImageDataUrl, "민원 사진");
+          }
+
+          let active = getActiveSession();
+          if (!active) {
+            createAndActivateNewSession();
+            active = getActiveSession();
+          }
+
+          const lines = [];
+          lines.push("내부 시스템에서 선택한 민원 정보를 불러왔습니다.");
+          lines.push("");
+          if (data.id != null) lines.push(`- 민원 ID: ${data.id}`);
+          if (data.author_name) lines.push(`- 신고자: ${data.author_name}`);
+          if (data.user_id) lines.push(`- 사용자 ID: ${data.user_id}`);
+          if (data.location_name) lines.push(`- 위치: ${data.location_name}`);
+          if (
+            typeof data.latitude === "number" &&
+            typeof data.longitude === "number"
+          ) {
+            lines.push(`- 좌표: ${data.latitude}, ${data.longitude}`);
+          }
+          if (data.created_at) lines.push(`- 접수 시각: ${data.created_at}`);
+          if (data.description) {
+            lines.push("");
+            lines.push("[민원 내용]");
+            lines.push(data.description);
+          }
+          lines.push("");
+          lines.push(
+            "이 민원에 대해 인수인계 기준으로 처리 절차를 묻고 싶다면, 아래 입력창에 추가로 궁금한 내용을 작성해 주셔도 좋습니다."
+          );
+
+          appendMessage("assistant", lines.join("\n"));
+
+          if (!inputEl.value) {
+            inputEl.value =
+              "이 민원에 대해 인수인계 기준 처리 절차와 담당 부서를 정리해 주세요.";
+            autoResizeTextarea();
+          }
+        } catch (e) {
+          console.error("민원/프리필 정보 로딩 실패:", e);
+        }
+      }
+
       window.addEventListener("DOMContentLoaded", () => {
         autoResizeTextarea();
         const loaded = loadSessionsFromStorage();
@@ -2143,6 +2518,9 @@
             updateChatVisibility();
           }
         }
+
+        // 인수인계 화면에서 넘어온 민원이 있으면 여기서 처리
+        loadComplaintFromStorage();
       });
     </script>
   </body>
