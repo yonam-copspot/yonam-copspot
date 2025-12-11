@@ -37,8 +37,7 @@ class ComplaintStatusAdapter :
         private val textLocation: TextView = itemView.findViewById(R.id.textCompletionLocation)
         private val textCreatedAt: TextView = itemView.findViewById(R.id.textCompletionCreatedAt)
         private val textDoneAt: TextView = itemView.findViewById(R.id.textCompletionDoneAt)
-        private val textDescription: TextView =
-            itemView.findViewById(R.id.textCompletionDescription)
+        private val textDescription: TextView = itemView.findViewById(R.id.textCompletionDescription)
 
         fun bind(item: CompletionDto) {
             textId.text = "민원 ID: ${item.id}"
