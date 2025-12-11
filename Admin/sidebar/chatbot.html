@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>학교 민원 인수인계 챗봇</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #f9fafb;
+        --primary: #2563eb;
+        --primary-soft: #e0edff;
+        --accent: #22c55e;
+        --border: #e5e7eb;
+        --card: #ffffff;
+        --card-soft: #f9fafb;
+        --text-main: #111827;
+        --text-sub: #6b7280;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+          system-ui, sans-serif;
+        background: radial-gradient(circle at 0% 0%, #e5f0ff 0, transparent 45%),
+          radial-gradient(circle at 100% 100%, #fee2e2 0, transparent 45%),
+          #f9fafb;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        color: var(--text-main);
+        font-size: 0.95rem;
+      }
+
+      .top-gap {
+        height: 5vh;
+        background: linear-gradient(90deg, #c7d8ff, #eef4ff);
+        display: flex;
+        align-items: center;
+        padding: 0 2rem;
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .tab-link {
+        text-decoration: none;
+        color: #5a657e;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .tab-link:hover {
+        background: rgba(255, 255, 255, 0.85);
+        color: #1e4dd8;
+      }
+
+      .tab-link.active {
+        background: #fff;
+        color: #1e4dd8;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      }
+
+      .page-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px 32px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1500px;
+        height: 90vh;
+        max-height: 780px;
+        background: #ffffff;
+        border-radius: 28px;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12),
+          0 0 0 1px rgba(229, 231, 235, 0.9);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+        transition: transform 0.12s ease, filter 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+
+      .container.drag-active {
+        transform: scale(0.99);
+        filter: blur(1px);
+        box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
+      }
+
+      .header {
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, #eff6ff, #ffffff);
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: radial-gradient(circle at 0 0, #bfdbfe 0, transparent 55%),
+          conic-gradient(
+            from 230deg,
+            #2563eb,
+            #22c55e,
+            #f97316,
+            #e11d48,
+            #2563eb
+          );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 18px;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.55);
+      }
+
+      .title-main {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .title-sub {
+        font-size: 0.8rem;
+        color: var(--text-sub);
+      }
+
+      .badge {
+        font-size: 10px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: #1d4ed8;
+        margin-bottom: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+      }
+
+      .header-right-text {
+        font-size: 10px;
+        color: #6b7280;
+        text-align: right;
+      }
+
+      .body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 14px 14px 16px;
+        gap: 16px;
+        overflow: hidden;
+        background: radial-gradient(circle at 0 0, #eef2ff 0, transparent 50%),
+          #f9fafb;
+      }
+
+      .sidebar {
+        display: none !important;
+      }
+
+      .chat {
+        border-radius: 22px;
+        border: 1px solid rgba(209, 213, 219, 0.9);
+        background: radial-gradient(
+            circle at 0 0,
+            rgba(191, 219, 254, 0.4) 0,
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at 100% 120%,
+            rgba(254, 249, 195, 0.45) 0,
+            transparent 60%
+          ),
+          #ffffff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 16px 34px rgba(148, 163, 184, 0.4),
+          0 0 0 1px rgba(226, 232, 240, 0.9);
+      }
+
+      .chat-top-info {
+        font-size: 11px;
+        color: var(--text-sub);
+        text-align: center;
+        padding: 6px 10px 4px;
+        background: rgba(249, 250, 251, 0.96);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+      }
+
+      #chat-log {
+        flex: 1;
+        padding: 14px 18px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        scroll-behavior: smooth;
+      }
+
+      #chat-log::-webkit-scrollbar {
+        display: none;
+      }
+      #chat-log {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .msg-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        max-width: 100%;
+      }
+
+      .msg-row.user {
+        justify-content: flex-end;
+      }
+
+      .avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      .avatar.assistant {
+        background: #e0f2fe;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+      }
+
+      .avatar.user {
+        background: #22c55e;
+        color: #064e3b;
+      }
+
+      .bubble {
+        max-width: 80%;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        border-radius: 16px;
+        line-height: 1.5;
+        white-space: pre-line;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+        box-shadow: 0 1px 3px rgba(148, 163, 184, 0.4);
+      }
+
+      .msg-row.user .bubble {
+        max-width: 90%;
+      }
+
+      .bubble.user.user-text-only {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        color: #064e3b;
+        border-bottom-right-radius: 4px;
+      }
+
+      .bubble.assistant {
+        background: #ffffff;
+        color: #111827;
+        border-bottom-left-radius: 4px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        white-space: normal;
+      }
+
+      .bubble.assistant p {
+        margin: 0 0 0.35rem 0;
+      }
+
+      .bubble.assistant ul,
+      .bubble.assistant ol {
+        margin: 0.25rem 0 0.35rem 1.2rem;
+        padding-left: 0.8rem;
+      }
+
+      .bubble.assistant li {
+        margin-bottom: 0.15rem;
+      }
+
+      .bubble.assistant code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.85em;
+        background: #f3f4f6;
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+      }
+
+      .bubble.assistant pre {
+        margin: 0.35rem 0;
+        padding: 0.6rem 0.8rem;
+        background: #0f172a;
+        color: #e5e7eb;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-size: 0.8rem;
+      }
+
+      .bubble.assistant pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+      }
+
+      .bubble.image-msg {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      .bubble.image-msg .caption {
+        font-size: 0.78rem;
+        color: var(--text-sub);
+        margin-bottom: 4px;
+        padding: 0 2px;
+      }
+
+      .bubble.image-msg img {
+        display: block;
+        max-width: 260px;
+        max-height: 260px;
+        border-radius: 18px;
+        box-shadow: 0 10px 20px rgba(148, 163, 184, 0.7);
+        background: #ffffff;
+        object-fit: contain;
+      }
+
+      .meta {
+        font-size: 10px;
+        color: #9ca3af;
+        margin-top: 2px;
+      }
+
+      .footer {
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+        padding: 8px 12px 10px;
+        background: rgba(249, 250, 251, 0.98);
+      }
+
+      .form {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+      }
+
+      .input-shell {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+      }
+
+      .icon-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(209, 213, 219, 0.9);
+        background: linear-gradient(135deg, #f9fafb, #ffffff);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+        box-shadow: 0 6px 14px rgba(148, 163, 184, 0.5);
+        transition: transform 0.1s ease, box-shadow 0.1s ease,
+          border-color 0.1s ease, background 0.1s ease;
+      }
+
+      .icon-button svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: #4b5563;
+        stroke-width: 1.7;
+      }
+
+      .icon-button:hover {
+        transform: translateY(-1px);
+        border-color: #60a5fa;
+        box-shadow: 0 8px 18px rgba(96, 165, 250, 0.7);
+        background: #eff6ff;
+      }
+
+      .drop-zone {
+        position: relative;
+      }
+
+      .drop-zone.dragover .icon-button {
+        border-color: #3b82f6;
+        background: radial-gradient(
+            circle at 0 0,
+            rgba(59, 130, 246, 0.18) 0,
+            transparent 40%
+          ),
+          #ffffff;
+      }
+
+      #user-input {
+        flex: 1;
+        min-height: 40px;
+        max-height: 130px;
+        padding: 9px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(209, 213, 219, 0.9);
+        font-size: 0.9rem;
+        resize: none;
+        outline: none;
+        line-height: 1.5;
+        background: #f9fafb;
+        color: #111827;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease,
+          background 0.15s ease;
+      }
+
+      #user-input::placeholder {
+        color: #9ca3af;
+      }
+
+      #user-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+        background: #ffffff;
+      }
+
+      #send-btn {
+        padding: 9px 16px;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center; /* alignments → align-items */
+        gap: 5px;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.7);
+        transition: transform 0.1s ease, box-shadow 0.1s ease,
+          background 0.1s ease;
+        flex-shrink: 0;
+      }
+
+      #send-btn span:first-child {
+        transform: translateY(0.5px);
+      }
+
+      #send-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.9);
+      }
+
+      #send-btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .image-preview {
+        min-height: 0;
+      }
+
+      .preview-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        border: 1px solid #bfdbfe;
+        font-size: 0.78rem;
+        color: #374151;
+        margin-top: 4px;
+        max-width: 100%;
+      }
+
+      .preview-chip img {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        object-fit: cover;
+        box-shadow: 0 3px 8px rgba(148, 163, 184, 0.8);
+        flex-shrink: 0;
+      }
+
+      .preview-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 140px;
+      }
+
+      .preview-remove {
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0 2px 0 2px;
+      }
+
+      .preview-remove:hover {
+        color: #ef4444;
+      }
+
+      .status-bar {
+        margin-top: 5px;
+        font-size: 11px;
+        color: #6b7280;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .dots {
+        display: none;
+        gap: 4px;
+        align-items: center;
+      }
+
+      .dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #22c55e;
+        animation: pulse 1s infinite ease-in-out;
+      }
+
+      .dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.5;
+        }
+        50% {
+          transform: translateY(-3px);
+          opacity: 1;
+        }
+      }
+
+      .drop-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.32);
+        backdrop-filter: blur(2px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 30;
+      }
+
+      .drop-overlay.active {
+        display: flex;
+      }
+
+      .drop-overlay-inner {
+        background: rgba(249, 250, 251, 0.97);
+        border-radius: 20px;
+        padding: 20px 28px;
+        border: 1px dashed rgba(37, 99, 235, 0.5);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+        text-align: center;
+        max-width: 360px;
+      }
+
+      .drop-overlay-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        border: 1px solid rgba(37, 99, 235, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-size: 20px;
+        color: #1d4ed8;
+        background: linear-gradient(135deg, #eff6ff, #ffffff);
+      }
+
+      .drop-overlay-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 6px;
+      }
+
+      .drop-overlay-sub {
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-gap">
+      <nav class="tab-row">
+        <a class="tab-link" href="/">현재 민원</a>
+        <a class="tab-link" href="/completed">처리완료 민원</a>
+        <a class="tab-link active" href="/chatbot">GPT</a>
+      </nav>
+    </div>
+    <div class="page-body">
+      <div class="container">
+        <header class="header">
+          <div class="header-left">
+            <div class="logo">S</div>
+            <div>
+              <div class="title-main">학교 민원 인수인계 챗봇</div>
+              <div class="title-sub">
+                전임자 인수인계서·규정 기반 내부용 어시스턴트
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="badge">
+              <span class="badge-dot"></span>
+              <span>GPT API · 대회용</span>
+            </div>
+            <div class="header-right-text">
+              내부 참고용 · 실제 행정 결정은<br />항상 담당자 재량으로 최종 판단
+            </div>
+          </div>
+        </header>
+        <main class="body">
+          <aside class="sidebar"></aside>
+          <section class="chat">
+            <div class="chat-top-info">
+              엔터 → 전송, Shift+엔터 → 줄바꿈 · 인수인계서/규정 요약을 기반으로
+              답변합니다.
+            </div>
+            <div id="chat-log"></div>
+            <footer class="footer">
+              <form id="chat-form" class="form">
+                <div class="drop-zone" id="drop-zone">
+                  <button
+                    type="button"
+                    class="icon-button"
+                    id="image-button"
+                    title="사진 첨부 (클릭 또는 드래그&드롭)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M16.5 6.75L9 14.25C8.20435 15.0456 8.20435 16.2956 9 17.0912C9.79565 17.8869 11.0456 17.8869 11.8412 17.0912L18.75 10.1824C20.5355 8.39697 20.5355 5.49697 18.75 3.71152C16.9645 1.92607 14.0645 1.92607 12.2791 3.71152L5.25 10.7406C3.067 12.9237 3.067 16.4659 5.25 18.6489C7.433 20.8319 10.9751 20.8319 13.1581 18.6489L19.5 12.307"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <input
+                    type="file"
+                    id="image-input"
+                    accept="image/*"
+                    style="display: none"
+                  />
+                </div>
+
+                <div class="input-shell">
+                  <div class="input-row">
+                    <textarea
+                      id="user-input"
+                      rows="1"
+                      placeholder="예) 야간에 학생 안전 관련 민원이 접수되었을 때, 인수인계 기준 처리 절차를 알려줘."
+                    ></textarea>
+                    <button type="submit" id="send-btn">
+                      <span>➤</span>
+                      <span>전송</span>
+                    </button>
+                  </div>
+                  <div class="image-preview" id="image-preview"></div>
+                </div>
+              </form>
+              <div class="status-bar">
+                <div class="dots" id="loading-dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <div>답변은 인수인계서·학교 규정과 다를 수 있습니다.</div>
+              </div>
+            </footer>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="drop-overlay" id="drop-overlay">
+      <div class="drop-overlay-inner">
+        <div class="drop-overlay-icon">⇪</div>
+        <div class="drop-overlay-title">파일을 이 화면 위로 끌어오세요</div>
+        <div class="drop-overlay-sub">
+          이미지를 이곳에 놓으면 자동으로 첨부되어 민원 상황 파악에 활용됩니다.
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+      const LMSTUDIO_PROXY_URL = "/api/chatbot-proxy";
+      const LMSTUDIO_MODEL_NAME = "qwen2.5-vl-7b-instruct";
+
+      const HANDOVER_DOC_SUMMARY = `
+- 민원 우선순위: 안전사고 우려 > 시설 파손 > 기타 불편
+- 학생/학부모 응대 톤: 먼저 공감, 이후 해결 절차 안내
+- 기본 처리 프로세스:
+  1) 위치·상황·위험도 확인
+  2) 관련 부서(행정실, 시설 담당 등) 전달
+  3) 처리 예상 기간 안내
+  4) 처리 후 결과 회신
+- 절대 하지 말 것:
+  - 특정 교사·학생 실명 언급 비난
+  - 학교 규정을 임의로 변경 약속
+`;
+
+      const SYSTEM_PROMPT =
+        "[인수인계서 요약]\n" +
+        HANDOVER_DOC_SUMMARY +
+        `
+
+너는 "학교 민원 처리 담당자"를 도와주는 내부용 챗봇이야.
+주로 학교 관리자(행정실, 시설 담당자)가 너에게 업무 관련 질문을 한다.
+사용자는 학교 민원과 직접 관련이 없는 사진을 첨부하고, 그 사진에 대한 상세한 설명만 요청할 수도 있다.
+
+역할:
+1) 텍스트만 있을 때:
+   - 위 인수인계서 요약과 학교 규정을 기준으로, 민원 처리 관점에서 단계별로 정리해서 답변해.
+2) 이미지가 함께 올 때:
+   - 먼저 이미지에 보이는 장면, 사람/사물, 배경, 상태(깨짐, 훼손, 혼잡 등)를 객관적으로 자세히 묘사해.
+   - 그 다음에:
+     - 학교/민원과 관련 있어 보이면, 인수인계 기준에 따라 어떻게 해석·처리하면 좋을지 설명해.
+     - 학교/민원과 직접 관련이 없어 보이면, "이 이미지는 학교 민원과 직접적인 연관은 없어 보입니다."라고 한 번은 짚고,
+       일반적인 관점에서의 해석이나 설명(구조, 상황, 위험요소, 장단점 등)을 해 줘.
+
+규칙:
+- 모르는 내용은 아는 척 하지 말고, "인수인계서에 명시되지 않아 확답은 어렵습니다."라고 말해.
+- 실제 결재/예산/공문과 관련된 부분은 "최종 결정은 담당자 재량"이라고 한 번은 언급해.
+- 학생/학부모에게 보여줄 답변 예시를 요청하면, 정중한 존댓말 예시 문장을 2~3개 제시해.
+- 모든 답변은 반드시 자연스러운 한국어 존댓말로 작성해.
+- 민감한 개인정보(실명, 주소, 얼굴 등)는 추측하지 말고, 식별 가능한 인물은 "학생", "교직원", "사람" 정도로만 표현해.
+- 조금 시간이 걸려도 괜찮으니(최대 20초) 정확한정보(정답률 70%이상)전달을 목표로 해줘.
+`;
+
+      const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+
+      const chatLogEl = document.getElementById("chat-log");
+      const formEl = document.getElementById("chat-form");
+      const inputEl = document.getElementById("user-input");
+      const sendBtnEl = document.getElementById("send-btn");
+      const loadingDotsEl = document.getElementById("loading-dots");
+      const imageInputEl = document.getElementById("image-input");
+      const dropZoneEl = document.getElementById("drop-zone");
+      const imageButtonEl = document.getElementById("image-button");
+      const imagePreviewEl = document.getElementById("image-preview");
+      const dropOverlayEl = document.getElementById("drop-overlay");
+      const containerEl = document.querySelector(".container");
+
+      let currentImageFile = null;
+      let currentPreviewUrl = null;
+
+      function renderMarkdown(text) {
+        const cleaned = (text || "").trim();
+        if (window.marked) {
+          return marked.parse(cleaned, { breaks: true });
+        }
+        return cleaned.replace(/\n/g, "<br>");
+      }
+
+      function getTimeGreeting() {
+        const now = new Date();
+        const hour = now.getHours();
+
+        let prefix = "";
+        if (hour < 6) {
+          prefix = "늦은 밤까지 고생이 많으십니다.";
+        } else if (hour < 12) {
+          prefix = "좋은 아침입니다.";
+        } else if (hour < 18) {
+          prefix = "안녕하세요, 좋은 오후입니다.";
+        } else {
+          prefix = "안녕하세요, 좋은 저녁입니다.";
+        }
+
+        return (
+          prefix +
+          " 오늘 접수·처리하신 민원 중에서 궁금하신 점이 있으면 편하게 물어봐 주세요. 인수인계 기준에 맞춰 정리해 드리겠습니다."
+        );
+      }
+
+      const INTRO_MESSAGE =
+        "안녕하세요! 학교 민원 처리 담당자님을 도와드리는 내부 챗봇입니다. 인수인계서 요약을 기준으로, 효율적인 민원 처리에 도움이 되도록 노력하겠습니다. 궁금한 점이 있으시면 언제든지 편하게 질문해 주세요.";
+
+      function appendMessage(role, content, imageDataUrl) {
+        const row = document.createElement("div");
+        row.className = "msg-row " + role;
+
+        const avatar = document.createElement("div");
+        avatar.className = "avatar " + role;
+        avatar.textContent = role === "user" ? "나" : "봇";
+
+        const wrapper = document.createElement("div");
+        const bubble = document.createElement("div");
+
+        bubble.classList.add("bubble", role === "user" ? "user" : "assistant");
+
+        const hasImage = !!imageDataUrl;
+
+        if (hasImage) {
+          bubble.classList.add("image-msg");
+        } else if (role === "user") {
+          bubble.classList.add("user-text-only");
+        }
+
+        if (content) {
+          const caption = document.createElement("div");
+
+          if (role === "assistant" && !hasImage) {
+            caption.innerHTML = renderMarkdown(content);
+          } else {
+            caption.textContent = content;
+          }
+
+          if (hasImage) {
+            caption.className = "caption";
+          }
+          bubble.appendChild(caption);
+        }
+
+        if (hasImage) {
+          const img = document.createElement("img");
+          img.src = imageDataUrl;
+          img.alt = "첨부 이미지";
+          bubble.appendChild(img);
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const now = new Date();
+        const timeStr = now.toTimeString().slice(0, 5);
+        meta.textContent =
+          (role === "user" ? "나" : "인수인계 챗봇") + " · " + timeStr;
+
+        wrapper.appendChild(bubble);
+        wrapper.appendChild(meta);
+
+        if (role === "user") {
+          row.appendChild(wrapper);
+          row.appendChild(avatar);
+        } else {
+          row.appendChild(avatar);
+          row.appendChild(wrapper);
+        }
+
+        chatLogEl.appendChild(row);
+        chatLogEl.scrollTop = chatLogEl.scrollHeight;
+      }
+
+      function setLoading(isLoading) {
+        loadingDotsEl.style.display = isLoading ? "inline-flex" : "none";
+        sendBtnEl.disabled = isLoading;
+      }
+
+      function autoResizeTextarea() {
+        inputEl.style.height = "auto";
+        inputEl.style.height = inputEl.scrollHeight + "px";
+      }
+
+      inputEl.addEventListener("input", autoResizeTextarea);
+
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          formEl.requestSubmit();
+        }
+      });
+
+      function updateImagePreview(file) {
+        if (currentPreviewUrl) {
+          URL.revokeObjectURL(currentPreviewUrl);
+          currentPreviewUrl = null;
+        }
+
+        if (!file) {
+          imagePreviewEl.innerHTML = "";
+          return;
+        }
+
+        const url = URL.createObjectURL(file);
+        currentPreviewUrl = url;
+
+        imagePreviewEl.innerHTML = `
+          <div class="preview-chip">
+            <img src="${url}" alt="선택된 이미지 미리보기" />
+            <span class="preview-name">${file.name}</span>
+            <button type="button" class="preview-remove" title="첨부 취소">×</button>
+          </div>
+        `;
+
+        const removeBtn = imagePreviewEl.querySelector(".preview-remove");
+        if (removeBtn) {
+          removeBtn.addEventListener("click", () => {
+            currentImageFile = null;
+            imageInputEl.value = "";
+            updateImagePreview(null);
+          });
+        }
+      }
+
+      function setImageFile(file) {
+        if (file && file.type.startsWith("image/")) {
+          currentImageFile = file;
+          updateImagePreview(file);
+        } else {
+          currentImageFile = null;
+          imageInputEl.value = "";
+          updateImagePreview(null);
+        }
+      }
+
+      imageButtonEl.addEventListener("click", () => {
+        imageInputEl.click();
+      });
+
+      imageInputEl.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        setImageFile(file || null);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        document.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function showDragUI() {
+        dropZoneEl.classList.add("dragover");
+        dropOverlayEl.classList.add("active");
+        containerEl.classList.add("drag-active");
+      }
+
+      function hideDragUI() {
+        dropZoneEl.classList.remove("dragover");
+        dropOverlayEl.classList.remove("active");
+        containerEl.classList.remove("drag-active");
+      }
+
+      document.addEventListener("dragover", () => {
+        showDragUI();
+      });
+
+      document.addEventListener("dragenter", () => {
+        showDragUI();
+      });
+
+      document.addEventListener("dragleave", (e) => {
+        if (
+          e.clientX <= 0 ||
+          e.clientY <= 0 ||
+          e.clientX >= window.innerWidth ||
+          e.clientY >= window.innerHeight
+        ) {
+          hideDragUI();
+        }
+      });
+
+      document.addEventListener("drop", (e) => {
+        hideDragUI();
+
+        const dt = e.dataTransfer;
+        const files = dt?.files;
+        if (!files || files.length === 0) return;
+
+        let imageFile = null;
+        for (let i = 0; i < files.length; i++) {
+          if (files[i].type.startsWith("image/")) {
+            imageFile = files[i];
+            break;
+          }
+        }
+        setImageFile(imageFile);
+      });
+
+      function fileToCompressedDataURL(
+        file,
+        maxWidth = 640,
+        maxHeight = 640,
+        quality = 0.55
+      ) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              let width = img.width;
+              let height = img.height;
+              const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+              const targetWidth = Math.round(width * ratio);
+              const targetHeight = Math.round(height * ratio);
+
+              const canvas = document.createElement("canvas");
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+              const dataUrl = canvas.toDataURL("image/jpeg", quality);
+              resolve(dataUrl);
+            };
+            img.onerror = (err) => reject(err);
+            img.src = reader.result;
+          };
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function callLmStudio() {
+        const payload = {
+          model: LMSTUDIO_MODEL_NAME,
+          messages,
+          temperature: 0.2,
+        };
+
+        if (window.__lmStudioLastResponse) {
+          delete window.__lmStudioLastResponse;
+        }
+
+        const res = await fetch(LMSTUDIO_PROXY_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseError) {
+          throw new Error("LM Studio 응답을 JSON으로 파싱하지 못했습니다.");
+        }
+
+        window.__lmStudioLastResponse = data;
+
+        if (!res.ok) {
+          console.error("LM Studio error:", data);
+          const errorMessage =
+            data?.error?.message || data?.message || "LM Studio API error";
+          throw new Error(errorMessage);
+        }
+
+        if (!Array.isArray(data?.choices) || data.choices.length === 0) {
+          console.error("LM Studio response missing choices", data);
+          throw new Error(
+            data?.error?.message ||
+              data?.message ||
+              "LM Studio 응답에서 message를 찾지 못했습니다."
+          );
+        }
+
+        const reply = data.choices[0]?.message;
+        if (!reply) {
+          console.error("LM Studio response missing message", data);
+          throw new Error(
+            data?.error?.message ||
+              data?.message ||
+              "LM Studio 응답에서 message를 찾지 못했습니다."
+          );
+        }
+        return reply;
+      }
+
+      formEl.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const text = inputEl.value.trim();
+        const file = currentImageFile;
+
+        if (!text && !file) return;
+
+        let dataUrl = null;
+        if (file) {
+          dataUrl = await fileToCompressedDataURL(file, 640, 640, 0.55);
+        }
+
+        let displayText = text || "";
+        if (file) {
+          if (displayText) displayText += "\n";
+          displayText += "[이미지 첨부됨]";
+        }
+        appendMessage("user", displayText, dataUrl);
+
+        inputEl.value = "";
+        autoResizeTextarea();
+        currentImageFile = null;
+        imageInputEl.value = "";
+        updateImagePreview(null);
+
+        let userMessage;
+        if (file && dataUrl) {
+          const textPart =
+            text ||
+            "첨부된 사진이 학교 민원과 직접 관련이 없어도 괜찮습니다. 사진에 보이는 내용을 최대한 자세히 묘사해 주시고, 학교 민원 관점에서 참고할 만한 부분이 있다면 함께 설명해 주세요.";
+          userMessage = {
+            role: "user",
+            content: [
+              { type: "text", text: textPart },
+              {
+                type: "image_url",
+                image_url: {
+                  url: dataUrl,
+                },
+              },
+            ],
+          };
+        } else {
+          userMessage = {
+            role: "user",
+            content: text,
+          };
+        }
+
+        messages.push(userMessage);
+
+        try {
+          setLoading(true);
+          const replyMsg = await callLmStudio();
+
+          let replyText = "";
+          if (typeof replyMsg?.content === "string") {
+            replyText = replyMsg.content;
+          } else if (Array.isArray(replyMsg?.content)) {
+            replyText = replyMsg.content
+              .filter((p) => p.type === "text" && p.text)
+              .map((p) => p.text)
+              .join("\n");
+          } else {
+            replyText =
+              "LM Studio 응답 형식이 올바르지 않아 답변을 표시할 수 없습니다.";
+          }
+
+          replyText = replyText.trim();
+          appendMessage("assistant", replyText);
+          messages.push({ role: "assistant", content: replyMsg.content });
+        } catch (err) {
+          console.error(err);
+          appendMessage(
+            "assistant",
+            "오류가 발생했습니다: " +
+              err.message +
+              "\n\nLM Studio 서버 실행 여부와 /api/chatbot-proxy 프록시가 정상 동작하는지, 그리고 사용 중인 모델(qwen2.5-vl-7b-instruct)이 이미지 입력을 지원하는지 확인해 주세요."
+          );
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      window.addEventListener("DOMContentLoaded", () => {
+        autoResizeTextarea();
+        const greeting = getTimeGreeting();
+        appendMessage("assistant", greeting);
+        appendMessage("assistant", INTRO_MESSAGE);
+      });
+    </script>
+  </body>
+</html>
