@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/yonam_copspot/ComplaintStatusActivity.kt
 package com.example.yonam_copspot
 
 import android.os.Bundle
@@ -21,7 +20,9 @@ class ComplaintStatusActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_complaint_detail)
+
+        // ✅ 이 레이아웃 안에 recyclerViewCompletions / textEmptyCompletions 가 있어야 함
+        setContentView(R.layout.activity_complaint_status)
 
         supportActionBar?.title = "민원 처리 현황"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -29,7 +30,9 @@ class ComplaintStatusActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerViewCompletions)
         textEmpty = findViewById(R.id.textEmptyCompletions)
 
+        // ✅ 네 어댑터는 람다 받는 생성자가 아니니까 인자 없이 생성
         adapter = ComplaintStatusAdapter()
+
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
     }
@@ -39,15 +42,10 @@ class ComplaintStatusActivity : AppCompatActivity() {
         loadCompletions()
     }
 
-    /**
-     * /api/mobile/completions 호출
-     * 완료된 민원 전체(관리자 관점)를 가져와서 리스트에 표시
-     */
     private fun loadCompletions() {
         lifecycleScope.launch {
             try {
-                val list = RetrofitClient.api.getCompletions()  // ★ 완결 민원 API
-                android.util.Log.d("COPSPOT", "completions: $list")
+                val list = RetrofitClient.api.getCompletions()
 
                 if (list.isEmpty()) {
                     textEmpty.visibility = View.VISIBLE
@@ -71,11 +69,7 @@ class ComplaintStatusActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
-
+            android.R.id.home -> { finish(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }

@@ -26,13 +26,15 @@
             android:textColor="@android:color/white"
             android:textStyle="bold"
             android:textSize="18sp"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="16dp" />
 
         <!-- 이름 -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilWriterName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
+            app:hintEnabled="false"
             app:boxBackgroundMode="filled"
             app:boxBackgroundColor="@android:color/white"
             app:boxCornerRadiusTopStart="12dp"
@@ -49,14 +51,16 @@
                 android:inputType="textPersonName"
                 android:textColor="@android:color/black"
                 android:textSize="14sp"
-                android:padding="12dp"/>
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- 아이디 -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilUserId"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
+            app:hintEnabled="false"
             app:boxBackgroundMode="filled"
             app:boxBackgroundColor="@android:color/white"
             app:boxCornerRadiusTopStart="12dp"
@@ -73,7 +77,7 @@
                 android:inputType="text"
                 android:textColor="@android:color/black"
                 android:textSize="14sp"
-                android:padding="12dp"/>
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- 장소 -->
@@ -82,7 +86,7 @@
             android:layout_height="wrap_content"
             android:text="장소"
             android:textColor="@android:color/white"
-            android:layout_marginBottom="6dp"/>
+            android:layout_marginBottom="6dp" />
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/chipGroupLocation"
@@ -102,7 +106,7 @@
                 android:layout_height="wrap_content"
                 android:text="산학협동관"
                 android:checkable="true"
-                android:checked="true"/>
+                android:checked="true" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipLoc2"
@@ -110,7 +114,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="인화관"
-                android:checkable="true"/>
+                android:checkable="true" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipLoc3"
@@ -118,7 +122,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="미래관"
-                android:checkable="true"/>
+                android:checkable="true" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipLoc4"
@@ -126,7 +130,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="본관"
-                android:checkable="true"/>
+                android:checkable="true" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipLocEtc"
@@ -134,7 +138,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="기타"
-                android:checkable="true"/>
+                android:checkable="true" />
         </com.google.android.material.chip.ChipGroup>
 
         <!-- 상세설명 -->
@@ -143,12 +147,14 @@
             android:layout_height="wrap_content"
             android:text="상세 설명"
             android:textColor="@android:color/white"
-            android:layout_marginBottom="4dp"/>
+            android:layout_marginBottom="4dp" />
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
             app:boxBackgroundMode="filled"
             app:boxBackgroundColor="@android:color/white"
             app:boxCornerRadiusTopStart="12dp"
@@ -161,13 +167,13 @@
                 android:id="@+id/editMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:hint="상세 내용을 입력해주세요"
                 android:minLines="4"
                 android:gravity="top"
-                android:hint="상세 내용을 입력해주세요"
                 android:inputType="textMultiLine"
                 android:textColor="@android:color/black"
                 android:textSize="14sp"
-                android:padding="12dp"/>
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- 사진 -->
@@ -176,7 +182,7 @@
             android:layout_height="wrap_content"
             android:text="사진"
             android:textColor="@android:color/white"
-            android:layout_marginBottom="6dp"/>
+            android:layout_marginBottom="6dp" />
 
         <ImageView
             android:id="@+id/imagePreview"
@@ -184,14 +190,14 @@
             android:layout_height="120dp"
             android:layout_marginBottom="8dp"
             android:background="@drawable/design_image"
-            android:scaleType="centerCrop"/>
+            android:scaleType="centerCrop" />
 
         <Button
             android:id="@+id/btnTakePhoto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="사진 촬영"
-            android:layout_marginBottom="20dp"/>
+            android:layout_marginBottom="20dp" />
 
         <!-- 하단 버튼 -->
         <LinearLayout
@@ -211,7 +217,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="등록"
-                android:layout_marginStart="8dp"/>
+                android:layout_marginStart="8dp" />
         </LinearLayout>
 
     </LinearLayout>

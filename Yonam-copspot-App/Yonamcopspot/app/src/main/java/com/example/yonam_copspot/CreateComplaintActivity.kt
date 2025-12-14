@@ -8,11 +8,7 @@ import android.util.Base64
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.ScrollView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -29,42 +25,32 @@ import java.io.ByteArrayOutputStream
 
 class CreateComplaintActivity : AppCompatActivity() {
 
-    // TODO: 실제 로그인 시스템 생기면 여기서 userId 받아오기
-    private val loginUserId = "22360006"
-    private val loginUserName = "김계영"
-
-    // ★ 위치
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     companion object {
         private const val REQUEST_LOCATION_PERMISSION = 1001
     }
 
-    private lateinit var scrollView: ScrollView
     private lateinit var imagePreview: ImageView
     private lateinit var btnTakePhoto: Button
     private lateinit var editWriterName: EditText
     private lateinit var editUserId: EditText
-
-    // ✅ 장소 칩 관련
     private lateinit var chipGroupLocation: ChipGroup
-
     private lateinit var editMessage: EditText
     private lateinit var btnSubmit: Button
     private lateinit var btnCancel: Button
 
     private var photoBase64: String? = null
 
-    private val takePicturePreviewLauncher = registerForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            imagePreview.setImageBitmap(bitmap)
-            photoBase64 = bitmap.toBase64()
-        } else {
-            Toast.makeText(this, "사진 촬영이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+    private val takePicturePreviewLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+            if (bitmap != null) {
+                imagePreview.setImageBitmap(bitmap)
+                photoBase64 = bitmap.toBase64()
+            } else {
+                Toast.makeText(this, "사진 촬영이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,21 +61,18 @@ class CreateComplaintActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        scrollView = findViewById(R.id.scrollViewCreateComplaint)
         imagePreview = findViewById(R.id.imagePreview)
         btnTakePhoto = findViewById(R.id.btnTakePhoto)
         editWriterName = findViewById(R.id.editWriterName)
         editUserId = findViewById(R.id.editUserId)
+        chipGroupLocation = findViewById(R.id.chipGroupLocation)
         editMessage = findViewById(R.id.editMessage)
         btnSubmit = findViewById(R.id.btnSubmitComplaint)
         btnCancel = findViewById(R.id.btnCancel)
 
-        // ✅ 칩 뷰 연결
-        chipGroupLocation = findViewById(R.id.chipGroupLocation)
-
-        // 기본값으로 로그인 아이디/이름 넣어두기 (수정 가능)
-        editUserId.setText(loginUserId)
-        editWriterName.setText(loginUserName)
+        // ✅ LoginSession 값으로 기본 세팅
+        editUserId.setText(LoginSession.userId)
+        editWriterName.setText(LoginSession.userName)
 
         btnTakePhoto.setOnClickListener {
             takePicturePreviewLauncher.launch(null)
@@ -104,43 +87,10 @@ class CreateComplaintActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ 칩에서 장소 가져오기
     private fun getSelectedLocation(): String {
         val checkedId = chipGroupLocation.checkedChipId
         if (checkedId == View.NO_ID) return ""
-        return chipGroupLocation.findViewById<Chip>(checkedId)
-            .text.toString()
-            .trim()
-    }
-
-    private fun submitComplaintToServer(
-        writerName: String,
-        userId: String,
-        locationText: String,
-        description: String,
-        latitude: Double?,
-        longitude: Double?
-    ) {
-        val body = CreateComplaintRequestDto(
-            userId = userId,
-            authorName = writerName,
-            photoBase64 = photoBase64,
-            locationName = locationText,
-            description = description,
-            latitude = latitude,
-            longitude = longitude
-        )
-
-        lifecycleScope.launch {
-            try {
-                RetrofitClient.api.createComplaint(body)
-                Toast.makeText(this@CreateComplaintActivity, "민원이 등록되었습니다.", Toast.LENGTH_SHORT).show()
-                finish()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@CreateComplaintActivity, "민원 등록에 실패했습니다.", Toast.LENGTH_SHORT).show()
-            }
-        }
+        return chipGroupLocation.findViewById<Chip>(checkedId).text.toString().trim()
     }
 
     private fun submitComplaintWithLocation() {
@@ -154,51 +104,68 @@ class CreateComplaintActivity : AppCompatActivity() {
             return
         }
 
-        // ★ 위치 권한 체크
+        // ✅ 입력값을 LoginSession에 반영 (핵심)
+        LoginSession.userId = userId
+        LoginSession.userName = writerName
+
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // 권한 없으면 요청
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 REQUEST_LOCATION_PERMISSION
             )
-            // onRequestPermissionsResult 에서 다시 submitComplaintWithLocation() 호출
             return
         }
 
-        // ★ 권한이 있는 경우: 마지막 위치 가져오기
         fusedLocationClient.lastLocation
             .addOnSuccessListener { loc ->
-                val lat = loc?.latitude
-                val lng = loc?.longitude
-
-                Log.d("CreateComplaintActivity", "현재 위치 위도: $lat, 경도: $lng")
-
                 submitComplaintToServer(
-                    writerName = writerName,
-                    userId = userId,
+                    latitude = loc?.latitude,
+                    longitude = loc?.longitude,
                     locationText = locationText,
-                    description = description,
-                    latitude = lat,
-                    longitude = lng
+                    description = description
                 )
             }
             .addOnFailureListener {
-                Toast.makeText(this, "현재 위치를 가져오지 못했습니다. 위치 없이 등록합니다.", Toast.LENGTH_SHORT).show()
-
                 submitComplaintToServer(
-                    writerName = writerName,
-                    userId = userId,
-                    locationText = locationText,
-                    description = description,
                     latitude = null,
-                    longitude = null
+                    longitude = null,
+                    locationText = locationText,
+                    description = description
                 )
             }
+    }
+
+    private fun submitComplaintToServer(
+        latitude: Double?,
+        longitude: Double?,
+        locationText: String,
+        description: String
+    ) {
+        val body = CreateComplaintRequestDto(
+            userId = LoginSession.userId,
+            authorName = LoginSession.userName,
+            photoBase64 = photoBase64,
+            locationName = locationText,
+            description = description,
+            latitude = latitude,
+            longitude = longitude
+        )
+
+        lifecycleScope.launch {
+            try {
+                RetrofitClient.api.createComplaint(body)
+                Toast.makeText(this@CreateComplaintActivity, "민원이 등록되었습니다.", Toast.LENGTH_SHORT).show()
+                finish()
+            } catch (e: Exception) {
+                Log.e("CreateComplaint", "등록 실패", e)
+                Toast.makeText(this@CreateComplaintActivity, "민원 등록에 실패했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -207,50 +174,24 @@ class CreateComplaintActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == REQUEST_LOCATION_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 권한을 방금 허용했으니 다시 시도
-                submitComplaintWithLocation()
-            } else {
-                // 거부한 경우: 위도/경도 없이 그냥 등록
-                Toast.makeText(this, "위치 권한이 없어 위치 없이 민원을 등록합니다.", Toast.LENGTH_SHORT).show()
-
-                val writerName = editWriterName.text.toString().trim()
-                val userId = editUserId.text.toString().trim()
-                val locationText = getSelectedLocation()
-                val description = editMessage.text.toString().trim()
-
-                if (writerName.isNotEmpty() && userId.isNotEmpty()
-                    && locationText.isNotEmpty() && description.isNotEmpty()
-                ) {
-                    submitComplaintToServer(
-                        writerName = writerName,
-                        userId = userId,
-                        locationText = locationText,
-                        description = description,
-                        latitude = null,
-                        longitude = null
-                    )
-                }
-            }
+        if (requestCode == REQUEST_LOCATION_PERMISSION &&
+            grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
+            submitComplaintWithLocation()
         }
     }
 
     private fun Bitmap.toBase64(): String {
         val outputStream = ByteArrayOutputStream()
-        this.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
-        val bytes = outputStream.toByteArray()
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+        compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+        return Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
+        return if (item.itemId == android.R.id.home) {
+            finish()
+            true
+        } else super.onOptionsItemSelected(item)
     }
 }
