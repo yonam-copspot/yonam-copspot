@@ -3,7 +3,10 @@ package com.example.yonam_copspot
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import android.view.MenuItem
@@ -104,7 +107,7 @@ class CreateComplaintActivity : AppCompatActivity() {
             return
         }
 
-        // ✅ 입력값을 LoginSession에 반영 (핵심)
+        // 입력값을 LoginSession에 반영
         LoginSession.userId = userId
         LoginSession.userName = writerName
 
@@ -120,6 +123,9 @@ class CreateComplaintActivity : AppCompatActivity() {
             )
             return
         }
+
+        // ✅ 중복 클릭 방지(선택)
+        btnSubmit.isEnabled = false
 
         fusedLocationClient.lastLocation
             .addOnSuccessListener { loc ->
@@ -159,13 +165,34 @@ class CreateComplaintActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 RetrofitClient.api.createComplaint(body)
-                Toast.makeText(this@CreateComplaintActivity, "민원이 등록되었습니다.", Toast.LENGTH_SHORT).show()
-                finish()
+
+                // ✅ 성공: 토스트/즉시 종료 대신 효과 + 사운드
+                showCompleteEffectAndFinish()
+
             } catch (e: Exception) {
                 Log.e("CreateComplaint", "등록 실패", e)
                 Toast.makeText(this@CreateComplaintActivity, "민원 등록에 실패했습니다.", Toast.LENGTH_SHORT).show()
+
+                // ✅ 실패: 다시 누를 수 있게
+                btnSubmit.isEnabled = true
             }
         }
+    }
+
+    // 사운드 + 성공효과 12/18 추가
+    private fun showCompleteEffectAndFinish() {
+        val overlay = findViewById<FrameLayout>(R.id.completeOverlay)
+        overlay.visibility = View.VISIBLE
+
+        // res/raw/complete_sound.mp3 → R.raw.complete_sound
+        val mp = MediaPlayer.create(this, R.raw.complete_sound)
+        mp.start()
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            overlay.visibility = View.GONE
+            mp.release()
+            finish() // 이전 화면(목록)으로 돌아감
+        }, 1200)
     }
 
     override fun onRequestPermissionsResult(
