@@ -21,6 +21,7 @@ const pool = mysql.createPool({
   charset: "utf8mb4",
 });
 
+// 완료 코멘트 테이블 보장
 const ensureDoneCommentTableSql = `
   CREATE TABLE IF NOT EXISTS complaint_done_comment (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -40,6 +41,7 @@ pool.query(ensureDoneCommentTableSql, (err) => {
   }
 });
 
+// ★ tags_json까지 포함해서 조회
 const complaintQuery = `
   SELECT id,
          author_name,
@@ -49,6 +51,7 @@ const complaintQuery = `
          latitude,
          longitude,
          photo_base64,
+         tags_json,
          created_at
   FROM complaint
   ORDER BY created_at DESC
@@ -64,6 +67,7 @@ const completedQuery = `
          latitude,
          longitude,
          photo_base64,
+         tags_json,
          created_at,
          done_at
   FROM complaint_done
@@ -93,6 +97,8 @@ function fetchComplaints(limit = 50) {
         .then((commentMap) => {
           complaints.forEach((complaint) => {
             complaint.comments = commentMap.get(complaint.id) || [];
+            // complaint.tags_json 은 그대로 서버에서 내려보내고
+            // index.html에서 JSON.parse 해서 item.tags로 만듦
           });
           resolve(complaints);
         })
@@ -164,6 +170,10 @@ function fetchCompletedComplaints(limit = 50) {
   });
 }
 
+/**
+ * 신규 민원 생성
+ * server.js에서 { ..., tags }를 넘기면 여기서 tags_json으로 직렬화해서 저장
+ */
 function createComplaint({
   author_name,
   user_id,
@@ -172,8 +182,12 @@ function createComplaint({
   latitude,
   longitude,
   photo_base64,
+  tags, // ← 추가
 }) {
   return new Promise((resolve, reject) => {
+    const tagsJson =
+      Array.isArray(tags) && tags.length ? JSON.stringify(tags) : null;
+
     const sql = `
       INSERT INTO complaint (
         photo_base64,
@@ -182,9 +196,10 @@ function createComplaint({
         location_name,
         description,
         latitude,
-        longitude
+        longitude,
+        tags_json
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const payload = [
       photo_base64 || "",
@@ -194,6 +209,7 @@ function createComplaint({
       description || null,
       latitude,
       longitude,
+      tagsJson,
     ];
 
     pool.query(sql, payload, (err, result) => {
@@ -229,6 +245,10 @@ function deleteComplaint(id) {
   });
 }
 
+/**
+ * 민원 완료 처리
+ * complaint → complaint_done 으로 복사할 때 tags_json도 같이 복사
+ */
 function completeComplaint(id) {
   return new Promise((resolve, reject) => {
     pool.getConnection((err, connection) => {
@@ -248,8 +268,18 @@ function completeComplaint(id) {
         }
 
         const selectSql = `
-          SELECT id, photo_base64, author_name, user_id, location_name, description, latitude, longitude, created_at
-          FROM complaint WHERE id = ? FOR UPDATE
+          SELECT id,
+                 photo_base64,
+                 author_name,
+                 user_id,
+                 location_name,
+                 description,
+                 latitude,
+                 longitude,
+                 tags_json,
+                 created_at
+          FROM complaint
+          WHERE id = ? FOR UPDATE
         `;
 
         connection.query(selectSql, [id], (selectErr, rows) => {
@@ -278,18 +308,19 @@ function completeComplaint(id) {
             }
 
             const insertSql = `
-              INSERT INTO complaint_done (
-                original_complaint_id,
-                photo_base64,
-                author_name,
-                user_id,
-                location_name,
-                description,
-                latitude,
-                longitude,
-                created_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `;
+                INSERT INTO complaint_done (
+                  original_complaint_id,
+                  photo_base64,
+                  author_name,
+                  user_id,
+                  location_name,
+                  description,
+                  latitude,
+                  longitude,
+                  tags_json,
+                  created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `;
             const insertPayload = [
               record.id,
               record.photo_base64 || "",
@@ -299,6 +330,7 @@ function completeComplaint(id) {
               record.description || null,
               record.latitude,
               record.longitude,
+              record.tags_json || null,
               record.created_at,
             ];
 
@@ -321,9 +353,9 @@ function completeComplaint(id) {
                     comment.created_at || new Date(),
                   ]);
                   const doneCommentSql = `
-                  INSERT INTO complaint_done_comment (done_id, commenter_name, comment_text, created_at)
-                  VALUES ?
-                `;
+                      INSERT INTO complaint_done_comment (done_id, commenter_name, comment_text, created_at)
+                      VALUES ?
+                    `;
                   connection.query(doneCommentSql, [values], cb);
                 };
 

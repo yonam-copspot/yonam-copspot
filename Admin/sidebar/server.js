@@ -27,6 +27,9 @@ const projectRootDir = path.join(__dirname, "..", "project-root");
 const LM_STUDIO_BASE_URL = "http://127.0.0.1:1234";
 const LM_STUDIO_API_KEY = process.env.LM_STUDIO_API_KEY || "lm-studio-local";
 
+// 허용 태그
+const ALLOWED_TAGS = ["자재", "기구", "건물", "도로", "환경", "기타"];
+
 // ----------------- LM Studio 프록시 함수 -----------------
 function forwardToLmStudio(payload = {}) {
   return new Promise((resolve, reject) => {
@@ -86,6 +89,88 @@ function forwardToLmStudio(payload = {}) {
     req.write(serialized);
     req.end();
   });
+}
+
+// ----------------- 이미지 기반 태그 분류 함수 -----------------
+async function classifyComplaintTagsWithLmStudio(photoBase64) {
+  if (!photoBase64) {
+    throw new Error("NO_IMAGE");
+  }
+
+  const normalized = photoBase64.trim().replace(/\s+/g, "");
+  const pureBase64 = normalized.startsWith("data:")
+    ? normalized.split(",")[1]
+    : normalized;
+
+  const prompt = `
+너는 학교 민원 사진을 보고 "민원 유형 태그"를 여러 개 선택해서 출력하는 역할을 한다.
+
+가능한 태그 값:
+- 자재: 벽, 바닥, 타일, 콘크리트, 도장, 유리, 철골, 난간, 계단 재질 등 "건축/토목 자재" 문제 중심
+- 기구: 책걸상, 컴퓨터, 프린터, 냉난방기, 조명, 소화기, CCTV, 운동기구 등 "이동 가능하거나 기계/설비" 문제 중심
+- 건물: 건물 전체 구조, 출입문, 출입로, 비상구, 복도, 화장실, 강의실 배치 등 "건물/시설 배치" 문제 중심
+- 도로: 보도, 차도, 포트홀, 횡단보도, 경사로, 배수로 등 "도로 / 보행로" 관련 문제 중심
+- 환경: 쓰레기, 낙서, 조경, 잡초, 물고임, 악취, 소음 등 "환경·청결" 문제 중심
+- 기타: 위 범주로 분류하기 애매한 경우
+
+규칙:
+1) 위 태그 중에서 가장 관련 있는 것 1~3개를 고른다.
+2) 반드시 JSON 배열 형태로만 출력한다.
+   예) ["자재","건물"]
+3) 설명, 문장, 다른 글자는 절대 추가하지 말고 JSON만 출력한다.
+`;
+
+  const payload = {
+    model: "qwen2.5-vl-7b-instruct", // LM Studio에서 실제 사용하는 모델명으로 맞추기
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${pureBase64}`,
+            },
+          },
+        ],
+      },
+    ],
+    max_tokens: 64,
+    temperature: 0,
+  };
+
+  const resp = await forwardToLmStudio(payload);
+  const content = resp?.choices?.[0]?.message?.content?.trim() || "";
+
+  let tags = [];
+
+  // 1차: JSON 파싱 시도
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed)) {
+      tags = parsed.map((v) => String(v).trim());
+    }
+  } catch (_) {
+    // 2차: JSON이 아니면 콤마/개행 기준 분리
+    const cleaned = content
+      .replace(/[\[\]"']/g, "")
+      .split(/[,|\n]/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    tags = cleaned;
+  }
+
+  // 3차: 허용 태그만 남기고, 중복 제거, 개수 제한
+  tags = tags
+    .map((t) => t.replace(/\s+/g, ""))
+    .filter((t) => ALLOWED_TAGS.includes(t));
+
+  tags = Array.from(new Set(tags));
+  if (!tags.length) tags = ["기타"];
+  if (tags.length > 3) tags = tags.slice(0, 3);
+
+  return tags;
 }
 
 // ----------------- 공통 미들웨어 / 정적 파일 -----------------
@@ -152,6 +237,8 @@ app.get("/api/mobile/completions", async (req, res) => {
       completed_at: row.done_at,
       address: row.location_name || "",
       detail: row.description || "",
+      // 필요하면 tags_json 도 내려줄 수 있음
+      // tags: row.tags_json ? JSON.parse(row.tags_json) : [],
     }));
     res.json(payload);
   } catch (err) {
@@ -176,7 +263,7 @@ app.get("/api/mobile/my-complaints", async (req, res) => {
   }
 });
 
-// 앱에서 "전송" 눌렀을 때: 신규 민원 등록
+// 앱에서 "전송" 눌렀을 때: 신규 민원 등록 + 사진 태그 자동 분류
 app.post("/api/create", async (req, res) => {
   const {
     author_name,
@@ -202,6 +289,22 @@ app.post("/api/create", async (req, res) => {
   try {
     const normalizedDescription =
       typeof description === "string" ? description.trim() : "";
+
+    // 1) 기본값
+    let tags = ["기타"];
+
+    // 2) 사진이 있으면 LM Studio로 태그 분류 시도
+    if (photo_base64) {
+      try {
+        tags = await classifyComplaintTagsWithLmStudio(photo_base64);
+      } catch (e) {
+        console.error("Failed to classify tags with LM Studio:", e);
+        // 실패해도 민원 자체는 저장해야 하니, 태그만 기타로 둔다.
+        tags = ["기타"];
+      }
+    }
+
+    // 3) DB insert (dbconnect.createComplaint가 tags를 받아서 tags_json에 저장하도록 수정 필요)
     const insertId = await createComplaint({
       author_name,
       user_id: user_id.trim(),
@@ -210,8 +313,10 @@ app.post("/api/create", async (req, res) => {
       latitude,
       longitude,
       photo_base64,
+      tags, // ← 여기로 태그 배열 넘김
     });
-    res.status(201).json({ message: "CREATED", id: insertId });
+
+    res.status(201).json({ message: "CREATED", id: insertId, tags });
   } catch (err) {
     console.error("Failed to insert complaint", err);
     res.status(500).json({ message: "DB_ERROR" });
@@ -259,7 +364,7 @@ app.post("/api/comments", async (req, res) => {
   }
 });
 
-// ----------------- LM Studio 프록시 엔드포인트 -----------------
+// ----------------- LM Studio 챗봇 프록시 엔드포인트 -----------------
 
 app.post("/api/chatbot-proxy", async (req, res) => {
   try {
