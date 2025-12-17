@@ -142,24 +142,67 @@
         transform: none;
       }
 
+      /* ----- 필터 영역 / 셀렉트 박스 ----- */
+
       .filter-bar {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
         margin-bottom: 1.25rem;
       }
 
-      .filter-bar label {
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
         font-size: 0.9rem;
         color: #555;
       }
 
+      .select-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+
       .filter-select {
-        padding: 0.35rem 0.6rem;
-        border-radius: 6px;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding: 0.4rem 2.2rem 0.4rem 0.8rem;
+        border-radius: 999px;
         border: 1px solid #cfd1d5;
+        background: #ffffff;
         font-size: 0.9rem;
         min-width: 9rem;
+        cursor: pointer;
+        line-height: 1.3;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease,
+          background-color 0.15s ease, transform 0.08s ease;
+      }
+
+      .filter-select:hover {
+        background-color: #f3f6ff;
+        border-color: #9ca9ff;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+        background-color: #f8fbff;
+      }
+
+      .select-wrapper::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+        right: 0.8rem;
+        top: 50%;
+        transform: translateY(-45%);
+        border-width: 5px 5px 0 5px;
+        border-style: solid;
+        border-color: #6b7280 transparent transparent transparent;
       }
 
       .complaint-list {
@@ -224,6 +267,22 @@
         font-size: 0.9rem;
         color: #2f3852;
         white-space: pre-wrap;
+      }
+
+      .complaint-tags {
+        margin: 0.35rem 0 0.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .tag-chip {
+        font-size: 0.78rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        background: #e0e7ff;
+        color: #1d2a5b;
+        border: 1px solid #c7d2fe;
       }
 
       .comment-section {
@@ -367,6 +426,15 @@
         .filter-bar {
           flex-direction: column;
           align-items: flex-start;
+          gap: 0.75rem;
+        }
+
+        .filter-group {
+          width: 100%;
+        }
+
+        .select-wrapper {
+          width: 100%;
         }
 
         .filter-select {
@@ -429,15 +497,33 @@
         </div>
 
         <div class="filter-bar">
-          <label for="locationFilter">위치 필터</label>
-          <select id="locationFilter" class="filter-select">
-            <option value="">전체</option>
-            <option value="산학협동관">산학협동관</option>
-            <option value="인화관">인화관</option>
-            <option value="미래관">미래관</option>
-            <option value="본관">본관</option>
-            <option value="기타">기타</option>
-          </select>
+          <div class="filter-group">
+            <label for="locationFilter">위치 필터</label>
+            <div class="select-wrapper">
+              <select id="locationFilter" class="filter-select">
+                <option value="">전체</option>
+                <option value="산학협동관">산학협동관</option>
+                <option value="인화관">인화관</option>
+                <option value="미래관">미래관</option>
+                <option value="본관">본관</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label for="tagFilter">태그 필터</label>
+            <div class="select-wrapper">
+              <select id="tagFilter" class="filter-select">
+                <option value="">전체</option>
+                <option value="자재">자재</option>
+                <option value="기구">기구</option>
+                <option value="건물">건물</option>
+                <option value="도로">도로</option>
+                <option value="환경">환경</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <p id="statusMessage" class="status-message"></p>
@@ -448,6 +534,7 @@
     <script>
       const listEl = document.getElementById("complaintList");
       const filterSelect = document.getElementById("locationFilter");
+      const tagFilterSelect = document.getElementById("tagFilter");
       const statusEl = document.getElementById("statusMessage");
       const previewFrame = document.querySelector(".preview-frame");
       const complaintCountEl = document.getElementById("complaintCount");
@@ -464,6 +551,7 @@
 
       let allComplaints = [];
       let currentFilter = "";
+      let currentTagFilter = "";
       let pendingMarkerPayload = null;
       const MARKER_HOLD_MS = 12000;
       let refreshHoldUntil = 0;
@@ -641,6 +729,20 @@
           .join("");
       }
 
+      function buildTagsHtml(tags = []) {
+        if (!Array.isArray(tags) || !tags.length) {
+          return "";
+        }
+        const safeTags = tags
+          .map((t) => String(t || "").trim())
+          .filter(Boolean);
+        if (!safeTags.length) return "";
+        const chips = safeTags
+          .map((t) => `<span class="tag-chip">#${t}</span>`)
+          .join("");
+        return `<div class="complaint-tags">${chips}</div>`;
+      }
+
       function buildPhotoSrc(raw) {
         if (!raw) return null;
         const trimmed = raw.trim();
@@ -674,7 +776,10 @@
           return;
         }
 
-        if (typeof filteredLength === "number" && currentFilter) {
+        if (
+          typeof filteredLength === "number" &&
+          (currentFilter || currentTagFilter)
+        ) {
           complaintCountEl.textContent = `현재 접수된 민원 ${total}건 · 필터 적용: ${filteredLength}건`;
         } else {
           complaintCountEl.textContent = `현재 접수된 민원 ${total}건`;
@@ -702,6 +807,8 @@
             : "시간 정보 없음";
           const photoSrc = buildPhotoSrc(item.photo_base64);
 
+          const tagsHtml = buildTagsHtml(item.tags);
+
           card.innerHTML = `
             <div class="complaint-name">
               ${
@@ -721,6 +828,7 @@
             <p class="complaint-line">
               ${item.location_name || "장소 정보 없음"}
             </p>
+            ${tagsHtml}
             ${
               item.description
                 ? `<p class="complaint-desc">${item.description}</p>`
@@ -866,7 +974,28 @@
             cache: "no-store",
           });
           if (!res.ok) throw new Error("API 호출 실패");
-          allComplaints = await res.json();
+          const raw = await res.json();
+
+          allComplaints = raw.map((item) => {
+            let tags = [];
+            if (Array.isArray(item.tags)) {
+              tags = item.tags;
+            } else if (
+              typeof item.tags_json === "string" &&
+              item.tags_json.trim()
+            ) {
+              try {
+                const parsed = JSON.parse(item.tags_json);
+                if (Array.isArray(parsed)) {
+                  tags = parsed;
+                }
+              } catch (e) {
+                console.error("tags_json 파싱 오류:", e);
+              }
+            }
+            return { ...item, tags };
+          });
+
           setFeedback("업데이트 완료");
           applyFilter();
         } catch (err) {
@@ -878,12 +1007,18 @@
       }
 
       function applyFilter() {
-        const filtered = currentFilter
-          ? allComplaints.filter(
-              (item) =>
-                resolveLocationCategory(item.location_name) === currentFilter
-            )
-          : allComplaints;
+        const filtered = allComplaints.filter((item) => {
+          const locPass = currentFilter
+            ? resolveLocationCategory(item.location_name) === currentFilter
+            : true;
+
+          const tags = Array.isArray(item.tags) ? item.tags : [];
+          const tagPass = currentTagFilter
+            ? tags.includes(currentTagFilter)
+            : true;
+
+          return locPass && tagPass;
+        });
 
         updateComplaintCount(filtered.length);
 
@@ -899,6 +1034,11 @@
 
       filterSelect.addEventListener("change", () => {
         currentFilter = filterSelect.value;
+        applyFilter();
+      });
+
+      tagFilterSelect.addEventListener("change", () => {
+        currentTagFilter = tagFilterSelect.value;
         applyFilter();
       });
 
