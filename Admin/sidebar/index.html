@@ -142,6 +142,36 @@
         transform: none;
       }
 
+      .scroll-top-btn {
+        position: fixed;
+        bottom: 3rem;
+        right: 3rem;
+        border: none;
+        border-radius: 999px;
+        padding: 1rem 2.2rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #1d4ed8, #2563eb);
+        color: #fff;
+        box-shadow: 0 12px 25px rgba(37, 99, 235, 0.35);
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(14px);
+        transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        z-index: 10;
+      }
+
+      .scroll-top-btn.visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .scroll-top-btn:hover {
+        box-shadow: 0 14px 30px rgba(30, 77, 216, 0.45);
+      }
+
       /* ----- 필터 영역 / 셀렉트 박스 ----- */
 
       .filter-bar {
@@ -158,6 +188,39 @@
         gap: 0.25rem;
         font-size: 0.9rem;
         color: #555;
+      }
+
+      .filter-actions {
+        display: flex;
+        align-items: flex-end;
+        margin-left: auto;
+      }
+
+      .btn-filter-reset {
+        border: 1px solid #cfd1d5;
+        border-radius: 999px;
+        padding: 0.4rem 1.1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        background: #ffffff;
+        color: #374151;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(55, 65, 81, 0.12);
+        transition: box-shadow 0.15s ease, transform 0.15s ease,
+          border-color 0.15s ease, color 0.15s ease;
+      }
+
+      .btn-filter-reset:hover {
+        border-color: #2563eb;
+        color: #1d4ed8;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+        transform: translateY(-1px);
+      }
+
+      .btn-filter-reset:focus-visible {
+        outline: none;
+        border-color: #1d4ed8;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
       }
 
       .select-wrapper {
@@ -441,6 +504,17 @@
           width: 100%;
         }
 
+        .filter-actions {
+          width: 100%;
+          margin-left: 0;
+          justify-content: center;
+        }
+
+        .btn-filter-reset {
+          width: 100%;
+          text-align: center;
+        }
+
         .preview-card {
           border-radius: 18px;
         }
@@ -461,6 +535,13 @@
         .btn-chatbot {
           width: 100%;
           text-align: center;
+        }
+
+        .scroll-top-btn {
+          right: 1rem;
+          bottom: 1.25rem;
+          width: calc(100% - 2rem);
+          max-width: 320px;
         }
       }
     </style>
@@ -524,12 +605,30 @@
               </select>
             </div>
           </div>
+          <div class="filter-actions">
+            <button
+              type="button"
+              id="resetFiltersButton"
+              class="btn-filter-reset"
+            >
+              필터 초기화
+            </button>
+          </div>
         </div>
 
         <p id="statusMessage" class="status-message"></p>
         <div id="complaintList" class="complaint-list"></div>
       </aside>
     </main>
+
+    <button
+      type="button"
+      id="scrollTopButton"
+      class="scroll-top-btn"
+      aria-label="페이지 상단으로 이동"
+    >
+      맨 위로
+    </button>
 
     <script>
       const listEl = document.getElementById("complaintList");
@@ -538,7 +637,10 @@
       const statusEl = document.getElementById("statusMessage");
       const previewFrame = document.querySelector(".preview-frame");
       const complaintCountEl = document.getElementById("complaintCount");
+      const rightPanelEl = document.querySelector(".right-panel");
       const askChatbotBtn = document.getElementById("askChatbotButton");
+      const resetFiltersBtn = document.getElementById("resetFiltersButton");
+      const scrollTopBtn = document.getElementById("scrollTopButton");
 
       const API_BASE =
         window.location.origin && window.location.origin.startsWith("http")
@@ -650,17 +752,50 @@
           .forEach((card) => card.classList.remove("focused"));
       }
 
+      function showScrollTopButton() {
+        if (scrollTopBtn) {
+          scrollTopBtn.classList.add("visible");
+        }
+      }
+
+      function hideScrollTopButton() {
+        if (scrollTopBtn) {
+          scrollTopBtn.classList.remove("visible");
+        }
+      }
+
+      function updateScrollTopVisibility() {
+        if (!scrollTopBtn) return;
+        if (!focusedComplaintId) {
+          hideScrollTopButton();
+          return;
+        }
+
+        if (rightPanelEl && rightPanelEl.scrollTop <= 20) {
+          hideScrollTopButton();
+        } else {
+          showScrollTopButton();
+        }
+      }
+
       function applyFocusedCardHighlight() {
         clearCardFocus();
-        if (!focusedComplaintId) return;
+        if (!focusedComplaintId) {
+          updateScrollTopVisibility();
+          return;
+        }
         const selector = `[data-complaint-id="${focusedComplaintId}"]`;
         const target = listEl.querySelector(selector);
-        if (!target) return;
+        if (!target) {
+          updateScrollTopVisibility();
+          return;
+        }
         target.classList.add("focused");
         if (shouldScrollToFocus) {
           target.scrollIntoView({ behavior: "smooth", block: "center" });
           shouldScrollToFocus = false;
         }
+        updateScrollTopVisibility();
       }
 
       function focusComplaintById(id, { scroll = false } = {}) {
@@ -792,6 +927,7 @@
           setFeedback("표시할 신고가 없습니다.");
           syncMapMarkers([]);
           focusedComplaintId = null;
+          hideScrollTopButton();
           updateComplaintCount(0);
           return;
         }
@@ -1026,10 +1162,36 @@
           listEl.innerHTML = "";
           setFeedback("필터에 해당하는 신고가 없습니다.");
           syncMapMarkers(filtered);
+          focusedComplaintId = null;
+          hideScrollTopButton();
           return;
         }
 
         renderComplaints(filtered);
+      }
+
+      function resetAllFilters() {
+        const hadSelection = Boolean(
+          currentFilter ||
+            currentTagFilter ||
+            (filterSelect && filterSelect.value) ||
+            (tagFilterSelect && tagFilterSelect.value)
+        );
+
+        currentFilter = "";
+        currentTagFilter = "";
+        if (filterSelect) {
+          filterSelect.value = "";
+        }
+        if (tagFilterSelect) {
+          tagFilterSelect.value = "";
+        }
+
+        applyFilter();
+
+        if (hadSelection) {
+          setFeedback("필터를 초기화했습니다.");
+        }
       }
 
       filterSelect.addEventListener("change", () => {
@@ -1041,6 +1203,10 @@
         currentTagFilter = tagFilterSelect.value;
         applyFilter();
       });
+
+      if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener("click", resetAllFilters);
+      }
 
       listEl.addEventListener("click", async (event) => {
         const completeBtn = event.target.closest(".btn-complete");
@@ -1058,6 +1224,7 @@
               focusedComplaintId = null;
               clearCardFocus();
               clearMarkerFocusOnMap();
+              updateScrollTopVisibility();
             } else {
               pauseAutoRefresh(
                 "지도 마커를 표시하는 동안 새로고침이 잠시 멈춥니다."
@@ -1090,6 +1257,23 @@
           }
         }
       });
+
+      if (scrollTopBtn) {
+        scrollTopBtn.addEventListener("click", () => {
+          if (rightPanelEl) {
+            rightPanelEl.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          updateScrollTopVisibility();
+        });
+      }
+
+      if (rightPanelEl) {
+        rightPanelEl.addEventListener("scroll", () => {
+          updateScrollTopVisibility();
+        });
+      }
 
       if (askChatbotBtn) {
         askChatbotBtn.addEventListener("click", () => {
@@ -1136,6 +1320,7 @@
         focusedComplaintId = null;
         clearCardFocus();
         clearMarkerFocusOnMap();
+        updateScrollTopVisibility();
       };
 
       loadComplaints();
