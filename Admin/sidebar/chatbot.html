@@ -1237,6 +1237,9 @@
       let confirmResolver = null;
       let promptResolver = null;
 
+      // 응답 대기 상태 (답변 오는 동안 채팅 비활성화)
+      let isChatBusy = false;
+
       function escapeHtml(str) {
         return (str || "").replace(/[&<>"']/g, (c) => {
           switch (c) {
@@ -1753,9 +1756,20 @@
         }
       }
 
+      // 응답 대기 상태와 함께 입력/버튼 disable 제어
       function setLoading(isLoading) {
+        isChatBusy = isLoading;
+
         loadingDotsEl.style.display = isLoading ? "inline-flex" : "none";
         sendBtnEl.disabled = isLoading;
+        inputEl.disabled = isLoading;
+
+        if (imageButtonEl) imageButtonEl.disabled = isLoading;
+        if (imageInputEl) imageInputEl.disabled = isLoading;
+
+        if (newChatBtnEl) newChatBtnEl.disabled = isLoading;
+        if (emptyNewChatBtnEl) emptyNewChatBtnEl.disabled = isLoading;
+        if (clearChatBtnEl) clearChatBtnEl.disabled = isLoading;
       }
 
       function autoResizeTextarea() {
@@ -1766,6 +1780,12 @@
       inputEl.addEventListener("input", autoResizeTextarea);
 
       inputEl.addEventListener("keydown", (e) => {
+        // 응답 대기 중에는 입력/전송 막기
+        if (isChatBusy) {
+          e.preventDefault();
+          return;
+        }
+
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           formEl.requestSubmit();
@@ -1832,10 +1852,12 @@
       }
 
       imageButtonEl.addEventListener("click", () => {
+        if (isChatBusy) return;
         imageInputEl.click();
       });
 
       imageInputEl.addEventListener("change", (e) => {
+        if (isChatBusy) return;
         const file = e.target.files[0];
         setImageFile(file || null);
       });
@@ -1862,10 +1884,12 @@
       }
 
       document.addEventListener("dragover", () => {
+        if (isChatBusy) return;
         showDragUI();
       });
 
       document.addEventListener("dragenter", () => {
+        if (isChatBusy) return;
         showDragUI();
       });
 
@@ -1882,6 +1906,8 @@
 
       document.addEventListener("drop", (e) => {
         hideDragUI();
+
+        if (isChatBusy) return;
 
         const dt = e.dataTransfer;
         const files = dt?.files;
@@ -2063,6 +2089,9 @@
       formEl.addEventListener("submit", async (e) => {
         e.preventDefault();
 
+        // 응답 대기 중에는 추가 전송 막기
+        if (isChatBusy) return;
+
         const active = getActiveSession();
         if (!active) {
           showPopup("먼저 새 대화방을 만들어 주세요.");
@@ -2238,14 +2267,18 @@
       });
 
       newChatBtnEl.addEventListener("click", () => {
+        if (isChatBusy) return;
         createAndActivateNewSession();
       });
 
       emptyNewChatBtnEl.addEventListener("click", () => {
+        if (isChatBusy) return;
         createAndActivateNewSession();
       });
 
       clearChatBtnEl.addEventListener("click", async () => {
+        if (isChatBusy) return;
+
         const active = getActiveSession();
         if (!active) return;
 
@@ -2262,7 +2295,6 @@
         resetActiveSessionMessages(true);
       });
 
-      // 인수인계 화면(index.html)에서 넘어온 민원 정보 읽기
       // 인수인계 화면(index.html)에서 넘어온 민원/프리필 정보 읽기
       function loadComplaintFromStorage() {
         try {
